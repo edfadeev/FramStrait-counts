@@ -27,9 +27,11 @@ theme_plot <- theme(axis.title.x = element_text(size = 18),
 ###################################
 ## import data set
 ###################################
-
+#raw counts
 raw.counts.SH <- read.csv("~/CARD-FISH/CARD-FISH_water_project/Concentration/single_hibr_counted/FOV_all_groups_SH.csv", sep = ",", dec = ".", header = TRUE)
+#environmental data
 
+metadata <- read.csv("~/CARD-FISH/PS99_samples_meta_EF_MC_nutrient_corrected.csv", sep = ",", dec = ".", header = TRUE)
 ###################################
 #calculate cell concentration
 ###################################
@@ -123,7 +125,7 @@ Scatter_FISH_counts <- ggplot(counts.aggregated_FISH_aggr2, aes(x=long, y=conc.m
 
 #Plot of cell concentration all groups East vs West surface water
 
-data.eub <- subset(counts.aggregated_FISH[counts.aggregated_FISH$Depth %in% surf,], Domain == "EUB")
+data.eub <- subset(counts.aggregated_FISH[counts.aggregated_FISH$Depth %in% surf,], Domain == "ALT") # change EUB for other domains 
 data.eub$conc.mn <- log10(data.eub$conc.mn)
 data.eub$smooth <- 1
 
@@ -132,7 +134,7 @@ library(ggplot2)
 library(gridExtra)
 library(viridis)
 
-Plot_east_west.p <- ggplot(na.omit(data.eub), aes(x = long, y = conc.mn, fill = Region, group = smooth))+ #color = Domain, shape = Domain)) + #add 'group = Type' for smooth line
+Plot_east_west_ARCH.p <- ggplot(na.omit(data.eub), aes(x = long, y = conc.mn, fill = Region, group = smooth))+ 
   geom_point(shape=21, size=5, color = "black")+
   xlab("Longitude [°East]")+
   ylab("log10(cells/ml")+
@@ -141,5 +143,11 @@ Plot_east_west.p <- ggplot(na.omit(data.eub), aes(x = long, y = conc.mn, fill = 
   ggpmisc::stat_poly_eq(formula = y ~ ns(x,2), parse = TRUE)+
   theme_classic(base_size = 12)
 
-#Plot of cell concentration for each group in East vs West surface water
+##########################
+# Environmental data scaling
+##########################
+env <- metadata
+env.t <- scale(env$Temperature, center = TRUE, scale = TRUE) # for temperature salinity and chla_fluor
+#env.t1 <- scale(env.t$Chla_fluor, center = TRUE, scale = TRUE)
+#env.t2 <- scale(env.t$Salinity, center = TRUE, scale = TRUE)
 

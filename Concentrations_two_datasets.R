@@ -78,7 +78,7 @@ EGC <- c("EG1","EG4")
 HG <- c("HG9","HG7", "HG5", "HG4", "HG2","HG1")
 N <- c("N3", "N4", "N5")
 SV <- c("SV2")
-WSC <- c("HG9","HG7","HG5","HG4","HG2","HG1","N3","N4","N5")
+WSC <- c("HG9","HG7","HG5","HG4","HG2","HG1","N3","N4","N5", "SV2")
 
 counts.aggregated_DAPI$Region[counts.aggregated_DAPI$StationName %in% EGC] <- "EGC"
 counts.aggregated_DAPI$Region[counts.aggregated_DAPI$StationName %in% HG] <- "HG"
@@ -86,6 +86,7 @@ counts.aggregated_DAPI$Region[counts.aggregated_DAPI$StationName %in% N] <- "N"
 counts.aggregated_DAPI$Region[counts.aggregated_DAPI$StationName %in% SV] <- "SV"
 
 counts.aggregated_FISH$Region[counts.aggregated_FISH$StationName %in% EGC] <- "EGC"
+counts.aggregated_FISH$Region[counts.aggregated_FISH$StationName %in% WSC] <- "WSC" # uncomment if necessary
 counts.aggregated_FISH$Region[counts.aggregated_FISH$StationName %in% HG] <- "HG"
 counts.aggregated_FISH$Region[counts.aggregated_FISH$StationName %in% N] <- "N"
 counts.aggregated_FISH$Region[counts.aggregated_FISH$StationName %in% SV] <- "SV"
@@ -144,10 +145,91 @@ Plot_east_west_ARCH.p <- ggplot(na.omit(data.eub), aes(x = long, y = conc.mn, fi
   theme_classic(base_size = 12)
 
 ##########################
-# Environmental data scaling
+# Environmental 
 ##########################
+
+##Data standarization. By default, this function will standardize the data (mean zero, unit variance). To indicate that we just want to subtract the mean, we need to turn off the argument scale = FALSE.
 env <- metadata
-env.t <- scale(env$Temperature, center = TRUE, scale = TRUE) # for temperature salinity and chla_fluor
-#env.t1 <- scale(env.t$Chla_fluor, center = TRUE, scale = TRUE)
-#env.t2 <- scale(env.t$Salinity, center = TRUE, scale = TRUE)
+
+centre_scale2 <- function(x) {
+   scale(x, scale = FALSE)
+ }
+
+env$NH4 <- centre_scale2(env$NH4) #run column by column by replacing in env
+
+
+## data correlation Temperature salinity by Pearson correlation test
+
+library("ggpubr")
+ggscatter(env, x = "Temperature", y = "Salinity", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson",
+          xlab = "Temperature", ylab = "Salinity")
+
+
+res <- cor.test(env$Temperature, env$Salinity, 
+                method = "pearson")
+res
+
+# normality test: data is not normally distributed p-values should be greater than the significance level 0.05
+
+shapiro.test(env$Temperature) # p-value = 1.806e-05
+shapiro.test(env$Salinity) # p-value = 3.823e-09
+shapiro.test(env$Chla_fluor) # p-value = 0.0001371
+
+
+## non-parametric tests:
+
+# Kendall rank correlation test
+
+res2 <- cor.test(env$Temperature, env$Salinity,  method="kendall")
+res2 # tau 0.3038223 
+
+res2.1 <- cor.test(env$Temperature, env$Chla_fluor,  method="kendall")
+res2.1 # tau -0.2577137
+
+res2.2 <- cor.test(env$Salinity, env$Chla_fluor,  method="kendall")
+res2.2 # tau -0.3012709
+
+#Spearman rank correlation coefficient
+
+res3 <-cor.test(env$Temperature, env$Salinity,  method = "spearman")
+res3 # rho 0.4401271
+
+res3.1 <-cor.test(env$Temperature, env$Chla_fluor,  method = "spearman")
+res3.1 # rho -0.3400739 
+
+res3.2 <-cor.test(env$Salinity, env$Chla_fluor,  method = "spearman")
+res3.2 # rho -0.4157426  
+
+# -1 indicates a strong negative correlation : this means that every time x increases, y decreases (left panel figure)
+# 0 means that there is no association between the two variables (x and y) (middle panel figure)
+# 1 indicates a strong positive correlation : this means that y increases with x (right panel figure)
+
+#Temperature and salinity are correlated to each other 
+#Temperature and Chlorophyll a are negatively correlated to each other 
+#Salinity and Chlorophyll a are negatively correlated to each other 
+
+##########################
+# Depth profiles cell concentration
+##########################
+ 
+data.deep <- counts.aggregated_FISH[,c("StationName", "Depth", "Domain", "conc.mn", "conc.sd", "Region")]
+data.deep.agg <- aggregate(conc.mn~Domain+Depth+Region, data.deep,mean)
+data.deep.agg1 <- aggregate(conc.sd~Domain+Depth+Region, data.deep,mean)
+data.deep.m <- merge(data.deep.agg, data.deep.agg1, by = c("Domain", "Depth", "Region"))
+data.deep.m$conc.mn <- log10(data.deep.m$conc.mn)
+
+data.deep.m$Depth<- factor(data.deep.m$Depth, 
+                        levels = rev(c("DCM", "EPI", "MESO", "BATHY", "ABYSS")))
+
+Plot_depth_profiles.p <- ggplot()+
+  geom_point(data = data.deep.m, aes(y = Depth, x = conc.mn, colour = Domain))+
+  geom_line(data = data.deep.m[data.deep.m$Region == "EGC",], linetype=1, aes(y = Depth, x = conc.mn, colour = Domain, group = Domain),size = 0.8)+ # this geom_line is not connecting the depth right 
+  geom_line(data = data.deep.m[data.deep.m$Region == "WSC",], linetype=1, aes(y = Depth, x = conc.mn, colour = Domain, group = Domain),size = 0.8)+
+  #scale_x_reverse(breaks = c(50,100,1000,2500,4000,5500))+
+  #coord_flip()+
+  #scale_color_manual(values = c("EGC" = "blue","WSC"= "red"))+ #uncommented to get default color for more groups
+  facet_grid(Region~Domain)+
+  theme_plot
 

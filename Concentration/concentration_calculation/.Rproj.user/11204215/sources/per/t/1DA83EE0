@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1552298588699.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3187052595",
+    "id" : "1DA83EE0",
+    "lastKnownWriteTime" : 1552567554,
+    "last_content_update" : 1552567554483,
+    "path" : "~/CARD-FISH/CARD-FISH_water_project/Concentration/concentration_calculation/Concentrations_two_datasets.R",
+    "project_path" : "Concentrations_two_datasets.R",
+    "properties" : {
+        "cursorPosition" : "149,0",
+        "scrollLine" : "132",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

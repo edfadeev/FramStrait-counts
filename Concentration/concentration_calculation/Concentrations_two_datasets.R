@@ -105,8 +105,11 @@ counts.aggregated_FISH$long[counts.aggregated_FISH$StationName == "HG9"] <- 2.84
 #Boxplots of cell concentration all groups all depths
 
 counts.aggregated_FISH$Depth <- factor(counts.aggregated_FISH$Depth, levels = c("DCM","EPI","MESO","BATHY","ABYSS"))
+#gitter puts the dots in the box to see the distribution 
 
-Boxplot_FISH_counts <- ggplot(counts.aggregated_FISH, aes(Region, conc.mn))+geom_boxplot()+facet_grid(Depth~.)+ # add counts.aggregated_FISH[counts.aggregated_FISH$Depth %in% surf,] as data to select surface counts
+Boxplot_FISH_counts <- ggplot(counts.aggregated_FISH[counts.aggregated_FISH$Depth %in% surf,], aes(Region, conc.mn))+
+  #ggplot(counts.aggregated_FISH[counts.aggregated_FISH$Depth %in% surf,], aes(Region, conc.mn))+
+  geom_boxplot()+facet_grid(Depth~.)+ # add counts.aggregated_FISH[counts.aggregated_FISH$Depth %in% surf,] as data to select surface counts
   theme(axis.text.x = element_text(angle = 90))+theme_plot+scale_y_log10(name = "cell conc. [log10(Cells/mL)]")+
   theme(panel.grid.minor = element_line(linetype = 'dotted', color = 'white', size= 0.5))+
   theme(panel.grid.major = element_line(linetype = 'dotted', color = 'white', size= 0.5))
@@ -127,6 +130,7 @@ Scatter_FISH_counts <- ggplot(counts.aggregated_FISH_aggr2, aes(x=long, y=conc.m
 #Plot of cell concentration all groups East vs West surface water
 
 data.eub <- subset(counts.aggregated_FISH[counts.aggregated_FISH$Depth %in% surf,], Domain == "EUB") # change EUB for other domains 
+data.eub <- subset(counts.aggregated_FISH, Domain == "EUB")
 data.eub$conc.mn <- log10(data.eub$conc.mn)
 data.eub$smooth <- 1
 
@@ -135,11 +139,14 @@ library(ggplot2)
 library(gridExtra)
 library(viridis)
 
-Plot_east_west_EUB.p <- ggplot(na.omit(data.eub), aes(x = long, y = conc.mn, fill = Region, group = smooth))+ 
-  geom_point(shape=21, size=5, color = "black")+
+Plot_east_west_EUB.p <- ggplot(na.omit(data.eub), aes(x = long, y = conc.mn, colour = Region, shape = Depth, group = Depth))+ 
+  #geom_point(shape=21, size=5, color = "black")+ #add the subset here to add the epi and dcm
+  geom_point(size=5)+ #add the subset here to add the epi and dcm
   xlab("Longitude [°East]")+
   ylab("log10(cells/ml")+
-  geom_smooth(method = "gam", formula = y ~ ns(x,2), show.legend = FALSE, se=FALSE, colour = "black")+
+  geom_text(aes(label = StationName))+
+  geom_smooth(aes(linetype = Depth), method = "gam", formula = y ~ ns(x,2), 
+              show.legend = FALSE, se=FALSE, colour = "black")+
   scale_fill_manual(values=c("EGC"="blue","HG"="red"))+
   ggpmisc::stat_poly_eq(formula = y ~ ns(x,2), parse = TRUE)+
   theme_classic(base_size = 12)
@@ -156,12 +163,16 @@ centre_scale2 <- function(x) {
    scale(x, scale = FALSE)
  }
 
-env$NH4 <- centre_scale2(env$NH4) #run column by column by replacing in env
+env.par= c("Temperature","Salinity", "Chla_fluor")
+test=env
+test[,env.par]<- apply(test[,env.par], MARGIN=2, FUN=centre_scale2)
+
+env$Chla_fluor <- centre_scale2(env$Chla_fluor) #run column by column by replacing in env
 
 ## data correlation Temperature salinity by Pearson correlation test
 
 library("ggpubr")
-ggscatter(env, x = "Temperature", y = "Salinity", 
+ggscatter(test, x = "Temperature", y = "Salinity", 
           add = "reg.line", conf.int = TRUE, 
           cor.coef = TRUE, cor.method = "pearson",
           xlab = "Temperature", ylab = "Salinity")
@@ -410,7 +421,18 @@ Plot_depth_profiles.p <- ggplot()+
   geom_line(data = data.deep.m[data.deep.m$Region == "EGC",], linetype=1, aes(y = Depth, x = conc.mn, colour = Domain, group = Domain),size = 0.8)+ # this geom_line is not connecting the depth right 
   geom_line(data = data.deep.m[data.deep.m$Region == "WSC",], linetype=1, aes(y = Depth, x = conc.mn, colour = Domain, group = Domain),size = 0.8)+
   #scale_x_reverse(breaks = c(50,100,1000,2500,4000,5500))+
-  #coord_flip()+
+  coord_flip()+
+  #scale_color_manual(values = c("EGC" = "blue","WSC"= "red"))+ #uncommented to get default color for more groups
+  facet_grid(Region~Domain)+
+  theme_plot
+
+ggplot()+
+  geom_point(data = data.deep.m, aes(y = conc.mn, x = Depth, colour = Domain))+
+  #geom_line(data = data.deep.m[data.deep.m$Region == "EGC",], linetype=1, aes(y = conc.mn, x = Depth, colour = Domain, group = Domain),size = 0.8)+ # this geom_line is not connecting the depth right 
+  geom_line(data = data.deep.m, linetype=1, aes(y = conc.mn, x = Depth, colour = Domain, group = Domain),size = 0.8)+ # this geom_line is not connecting the depth right 
+  #geom_line(data = data.deep.m[data.deep.m$Region == "WSC",], linetype=1, aes(y = conc.mn, x = Depth, colour = Domain, group = Domain),size = 0.8)+
+  #scale_x_reverse(breaks = c(50,100,1000,2500,4000,5500))+
+  coord_flip()+
   #scale_color_manual(values = c("EGC" = "blue","WSC"= "red"))+ #uncommented to get default color for more groups
   facet_grid(Region~Domain)+
   theme_plot

@@ -74,6 +74,8 @@ counts.aggregated_FISH <- counts.aggregated_FISH %>%
 #call surface water layer and add regions
 
 surf <- c("DCM")
+surf2 <- c("DCM", "EPI")
+depth <- c("MESO", "BATHY", "ABYSS")
 EGC <- c("EG1","EG4")
 HG <- c("HG9","HG7", "HG5", "HG4", "HG2","HG1")
 N <- c("N3", "N4", "N5")
@@ -84,6 +86,7 @@ counts.aggregated_DAPI$Region[counts.aggregated_DAPI$StationName %in% EGC] <- "E
 counts.aggregated_DAPI$Region[counts.aggregated_DAPI$StationName %in% HG] <- "HG"
 counts.aggregated_DAPI$Region[counts.aggregated_DAPI$StationName %in% N] <- "N"
 counts.aggregated_DAPI$Region[counts.aggregated_DAPI$StationName %in% SV] <- "SV"
+#counts.aggregated_DAPI$Region[counts.aggregated_DAPI$StationName %in% WSC] <- "WSC"
 
 counts.aggregated_FISH$Region[counts.aggregated_FISH$StationName %in% EGC] <- "EGC"
 #counts.aggregated_FISH$Region[counts.aggregated_FISH$StationName %in% WSC] <- "WSC" # uncomment if necessary
@@ -101,15 +104,29 @@ counts.aggregated_FISH$long[counts.aggregated_FISH$StationName == "HG4"] <- 4.18
 counts.aggregated_FISH$long[counts.aggregated_FISH$StationName == "HG5"] <- 3.8
 counts.aggregated_FISH$long[counts.aggregated_FISH$StationName == "HG7"] <- 3.5
 counts.aggregated_FISH$long[counts.aggregated_FISH$StationName == "HG9"] <- 2.841
+counts.aggregated_FISH$long[counts.aggregated_FISH$StationName == "N4"] <- 4.508
+counts.aggregated_FISH$long[counts.aggregated_FISH$StationName == "N3"] <- 5.166
+counts.aggregated_FISH$long[counts.aggregated_FISH$StationName == "N5"] <- 3.062
+counts.aggregated_FISH$long[counts.aggregated_FISH$StationName == "SV2"] <- 9.514
+
 
 #Boxplots of cell concentration all groups all depths
 
 counts.aggregated_FISH$Depth <- factor(counts.aggregated_FISH$Depth, levels = c("DCM","EPI","MESO","BATHY","ABYSS"))
-#gitter puts the dots in the box to see the distribution 
 
 Boxplot_FISH_counts <- ggplot(counts.aggregated_FISH[counts.aggregated_FISH$Depth %in% surf,], aes(Region, conc.mn))+
   #ggplot(counts.aggregated_FISH[counts.aggregated_FISH$Depth %in% surf,], aes(Region, conc.mn))+
-  geom_boxplot()+facet_grid(Depth~.)+ # add counts.aggregated_FISH[counts.aggregated_FISH$Depth %in% surf,] as data to select surface counts
+  geom_boxplot()+facet_grid(Depth~.)+ geom_jitter()+ # add counts.aggregated_FISH[counts.aggregated_FISH$Depth %in% surf,] as data to select surface counts
+  theme(axis.text.x = element_text(angle = 90))+theme_plot+scale_y_log10(name = "cell conc. [log10(Cells/mL)]")+
+  theme(panel.grid.minor = element_line(linetype = 'dotted', color = 'white', size= 0.5))+
+  theme(panel.grid.major = element_line(linetype = 'dotted', color = 'white', size= 0.5))
+
+#Boxplots of cell concentration DAPI all depths
+counts.aggregated_DAPI$Depth <- factor(counts.aggregated_DAPI$Depth, levels = c("DCM","EPI","MESO","BATHY","ABYSS"))
+
+Boxplot_DAPI_counts <- ggplot(counts.aggregated_DAPI[counts.aggregated_DAPI$Depth %in% surf,], aes(Region, conc.mn))+
+  #ggplot(counts.aggregated_FISH[counts.aggregated_FISH$Depth %in% surf,], aes(Region, conc.mn))+
+  geom_boxplot()+facet_grid(Depth~.)+ geom_jitter()+ # add counts.aggregated_FISH[counts.aggregated_FISH$Depth %in% surf,] as data to select surface counts
   theme(axis.text.x = element_text(angle = 90))+theme_plot+scale_y_log10(name = "cell conc. [log10(Cells/mL)]")+
   theme(panel.grid.minor = element_line(linetype = 'dotted', color = 'white', size= 0.5))+
   theme(panel.grid.major = element_line(linetype = 'dotted', color = 'white', size= 0.5))
@@ -129,8 +146,7 @@ Scatter_FISH_counts <- ggplot(counts.aggregated_FISH_aggr2, aes(x=long, y=conc.m
 
 #Plot of cell concentration all groups East vs West surface water
 
-data.eub <- subset(counts.aggregated_FISH[counts.aggregated_FISH$Depth %in% surf,], Domain == "EUB") # change EUB for other domains 
-data.eub <- subset(counts.aggregated_FISH, Domain == "EUB")
+data.eub <- subset(counts.aggregated_FISH, Domain == "EUB")  # change EUB for other domains 
 data.eub$conc.mn <- log10(data.eub$conc.mn)
 data.eub$smooth <- 1
 
@@ -139,9 +155,8 @@ library(ggplot2)
 library(gridExtra)
 library(viridis)
 
-Plot_east_west_EUB.p <- ggplot(na.omit(data.eub), aes(x = long, y = conc.mn, colour = Region, shape = Depth, group = Depth))+ 
-  #geom_point(shape=21, size=5, color = "black")+ #add the subset here to add the epi and dcm
-  geom_point(size=5)+ #add the subset here to add the epi and dcm
+Plot_east_west_EUB.p <- ggplot(na.omit(subset(data.eub, Depth %in% c("DCM", "MESO", "BATHY"))), aes(x = long, y = conc.mn, colour = Region, shape = Depth, group = Depth))+ 
+  geom_point(size=5)+  
   xlab("Longitude [°East]")+
   ylab("log10(cells/ml")+
   geom_text(aes(label = StationName))+
@@ -151,23 +166,22 @@ Plot_east_west_EUB.p <- ggplot(na.omit(data.eub), aes(x = long, y = conc.mn, col
   ggpmisc::stat_poly_eq(formula = y ~ ns(x,2), parse = TRUE)+
   theme_classic(base_size = 12)
 
+
 ##########################
 # Environmental 
 ##########################
 
 ##Data standarization. By default, this function will standardize the data (mean zero, unit variance). To indicate that we just want to subtract the mean, we need to turn off the argument scale = FALSE.
-env <- metadata
-env <- subset(env, StationName!="HG1") #remove HG1 (NA)
+env_raw <- metadata
+env_raw <- subset(env_raw, StationName!="HG1") #remove HG1 (NA)
 
 centre_scale2 <- function(x) {
    scale(x, scale = FALSE)
  }
 
 env.par= c("Temperature","Salinity", "Chla_fluor")
-test=env
-test[,env.par]<- apply(test[,env.par], MARGIN=2, FUN=centre_scale2)
-
-env$Chla_fluor <- centre_scale2(env$Chla_fluor) #run column by column by replacing in env
+env=env_raw
+env[,env.par]<- apply(env[,env.par], MARGIN=2, FUN=centre_scale2)
 
 ## data correlation Temperature salinity by Pearson correlation test
 
@@ -232,9 +246,10 @@ surface <- c("DCM", "EPI")
 env.surf <- subset(env[env$Depth %in% surface,])
 env.surf <- subset(env.surf, StationName!="HG1")
 env.surf$Region[env.surf$StationName %in% EGC] <- "EGC"
-env.surf$Region[env.surf$StationName %in% HG] <- "HG"
-env.surf$Region[env.surf$StationName %in% N] <- "N"
-env.surf$Region[env.surf$StationName %in% SV] <- "SV"
+env.surf$Region[env.surf$StationName %in% WSC] <- "WSC"
+#env.surf$Region[env.surf$StationName %in% HG] <- "HG"
+#env.surf$Region[env.surf$StationName %in% N] <- "N"
+#env.surf$Region[env.surf$StationName %in% SV] <- "SV"
 
 # Kendall rank correlation test: between physico-chemical parameters: 
 
@@ -325,8 +340,8 @@ res2.14.surf # rho 0.1496607
 
 #RDA
 library(tidyr)
-env.surf.DCM.only <- subset(env.surf[env.surf$Depth %in% surf,])
-counts.surf <- subset(counts.aggregated_FISH[counts.aggregated_FISH$Depth %in% surf,])
+env.surf.DCM.only <- subset(env.surf[env.surf$Depth %in% c("DCM"),])
+counts.surf <- subset(counts.aggregated_FISH[counts.aggregated_FISH$Depth %in% c("DCM"),])
 counts_data_for_stats.sub <- counts.surf[,c("Depth", "Domain", "StationName", "conc.mn")]
 counts_data_for_stats.sub.agg <- aggregate(conc.mn~StationName+Domain+Depth, counts_data_for_stats.sub,mean)
 counts_data_for_stats.sub.agg %>% spread(Domain, conc.mn) -> counts_data_for_stats.sub.agg
@@ -340,7 +355,7 @@ rownames(counts.stats) <- counts.surf.metadata$sample_ID
 rownames(env.surf.DCM.only) <- env.surf.DCM.only$sample_ID
 env.surf.DCM.only$sample_ID <- as.factor(env.surf.DCM.only$sample_ID)
 
-ord <- rda(counts.stats ~ Temperature + Chla_fluor + SiO3, data=env.surf.DCM.only, scale = TRUE, center = FALSE) # scale FALSE since it is already scaled
+ord <- rda(counts.stats ~ Temperature + Chla_fluor + SiO3 + NO3, data=env.surf.DCM.only, scale = TRUE, center = FALSE) # scale FALSE since it is already scaled
 
 #generate dataframe for the samples
 ps_scores <- vegan::scores(ord)
@@ -386,7 +401,7 @@ rda_plot <- ggplot() +
   theme(panel.grid.minor = element_line(linetype = 'dotted', color = 'white', size= 0.5))+
   theme(panel.grid.major = element_line(linetype = 'dotted', color = 'white', size= 0.5))
 
-# PCA attempt
+# PCA attempt DCM
 pca.data <- counts_data_for_stats.sub.agg
 
 rownames(pca.data) <- pca.data$StationName
@@ -399,9 +414,9 @@ library(ggbiplot)
 
 ggbiplot(pca.data.prcomp, labels=rownames(pca.data))
 
-pca.data.Region <- c(rep("EGC", 2), rep("WSC", 9))
+pca.data.Region <- c(rep("EGC", 2), rep("HG", 5), rep("N", 3), rep("SV", 1))
 
-ggbiplot(pca.data.prcomp,ellipse=TRUE,  labels=rownames(pca.data), groups=pca.data.Region)
+ggbiplot(pca.data.prcomp,ellipse=TRUE,  labels=rownames(pca.data), groups=pca.data.Region)+theme_plot
 
 ##########################
 # Depth profiles cell concentration
@@ -417,22 +432,23 @@ data.deep.m$Depth<- factor(data.deep.m$Depth,
                         levels = rev(c("DCM", "EPI", "MESO", "BATHY", "ABYSS")))
 
 Plot_depth_profiles.p <- ggplot()+
-  geom_point(data = data.deep.m, aes(y = Depth, x = conc.mn, colour = Domain))+
-  geom_line(data = data.deep.m[data.deep.m$Region == "EGC",], linetype=1, aes(y = Depth, x = conc.mn, colour = Domain, group = Domain),size = 0.8)+ # this geom_line is not connecting the depth right 
-  geom_line(data = data.deep.m[data.deep.m$Region == "WSC",], linetype=1, aes(y = Depth, x = conc.mn, colour = Domain, group = Domain),size = 0.8)+
-  #scale_x_reverse(breaks = c(50,100,1000,2500,4000,5500))+
+  geom_point(data = data.deep.m, aes(y = conc.mn, x = Depth, colour = Domain))+
+  geom_line(data = data.deep.m, linetype=1, aes(y = conc.mn, x = Depth, colour = Domain, group = Domain),size = 0.8)+ # this geom_line is not connecting the depth right 
   coord_flip()+
-  #scale_color_manual(values = c("EGC" = "blue","WSC"= "red"))+ #uncommented to get default color for more groups
   facet_grid(Region~Domain)+
   theme_plot
 
-ggplot()+
-  geom_point(data = data.deep.m, aes(y = conc.mn, x = Depth, colour = Domain))+
-  #geom_line(data = data.deep.m[data.deep.m$Region == "EGC",], linetype=1, aes(y = conc.mn, x = Depth, colour = Domain, group = Domain),size = 0.8)+ # this geom_line is not connecting the depth right 
-  geom_line(data = data.deep.m, linetype=1, aes(y = conc.mn, x = Depth, colour = Domain, group = Domain),size = 0.8)+ # this geom_line is not connecting the depth right 
-  #geom_line(data = data.deep.m[data.deep.m$Region == "WSC",], linetype=1, aes(y = conc.mn, x = Depth, colour = Domain, group = Domain),size = 0.8)+
-  #scale_x_reverse(breaks = c(50,100,1000,2500,4000,5500))+
-  coord_flip()+
-  #scale_color_manual(values = c("EGC" = "blue","WSC"= "red"))+ #uncommented to get default color for more groups
-  facet_grid(Region~Domain)+
-  theme_plot
+##
+counts.odv <- counts.aggregated_FISH
+counts.odv.sub <- counts.odv[,c("Depth", "Domain", "StationName", "conc.mn")]
+
+counts_data_for_ODV <- aggregate(conc.mn~StationName+Depth, counts.odv.sub,mean)
+env.for.odv <- metadata
+
+
+counts_metadata_for_ODV <- env.for.odv %>% left_join(counts_data_for_ODV, by=c("StationName", "Depth"))
+
+write.csv(counts_metadata_for_ODV, "~/CARD-FISH/CARD-FISH_water_project/counts_metadata_for_ODV.csv")
+counts_metadata_Depth_standard_for_ODV <- read.csv("~/CARD-FISH/CARD-FISH_water_project/Concentration/concentration_calculation/counts_metadata_depthstandarized_for_ODV.csv", sep = ",", dec = ".", header = TRUE)
+counts_metadata_Depth_standard_for_ODV$conc.mn <- log10(counts_metadata_Depth_standard_for_ODV$conc.mn)
+write.csv(counts_metadata_Depth_standard_for_ODV, "~/CARD-FISH/CARD-FISH_water_project/Concentration/concentration_calculation/counts_metadata_depthstandarized_for_ODV.csv")

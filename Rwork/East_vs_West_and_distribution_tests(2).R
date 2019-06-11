@@ -15,6 +15,7 @@ library(reshape2)
 library(tidyr)
 library(splines)
 library(gridExtra)
+library(ggbiplot)
 
 ##################################
 #plot theme
@@ -47,7 +48,7 @@ counts_FISH_aggr1  <- aggregate(conc.sd~StationName+Region+Depth+long,counts_FIS
 counts_FISH_aggr2 <- merge(counts_FISH_aggr1, counts_FISH_aggr)
 
 Scatter_FISH_counts <- ggplot(counts_FISH_aggr2, aes(x=long, y=conc.mn)) + geom_point()+facet_grid(Depth~.)+
-  geom_text(label=counts_FISH_aggr2$StationName)+
+  geom_text(label=counts_FISH_aggr2$StationName, nudge_y= 1)+
   geom_errorbar(aes(ymin = conc.mn-conc.sd, ymax = conc.mn+conc.sd), width = 0.15)+
   theme(axis.text.x = element_text(angle = 90))+theme_plot+scale_y_log10(name = "CARD-FISH [log10(Cells/mL)]")+
   theme(panel.grid.minor = element_line(linetype = 'dotted', color = 'white', size= 0.5))+
@@ -59,7 +60,7 @@ counts_DAPI_aggr1  <- aggregate(conc.sd~StationName+Region+Depth+long,counts_DAP
 counts_DAPI_aggr2 <- merge(counts_DAPI_aggr1, counts_DAPI_aggr)
 
 Scatter_DAPI_counts <- ggplot(counts_DAPI_aggr2, aes(x=long, y=conc.mn)) + geom_point()+facet_grid(Depth~.)+
-  geom_text(label=counts_DAPI_aggr2$StationName)+
+  geom_text(label=counts_DAPI_aggr2$StationName, nudge_y= 1)+
   geom_errorbar(aes(ymin = conc.mn-conc.sd, ymax = conc.mn+conc.sd), width = 0.15)+
   theme(axis.text.x = element_text(angle = 90))+theme_plot+scale_y_log10(name = "CARD-FISH [log10(Cells/mL)]")+
   theme(panel.grid.minor = element_line(linetype = 'dotted', color = 'white', size= 0.5))+
@@ -74,8 +75,21 @@ Boxplot_FISH_counts <- ggplot(subset(counts_FISH, Depth %in% c("DCM")), aes(Regi
   theme(panel.grid.minor = element_line(linetype = 'dotted', color = 'white', size= 0.5))+
   theme(panel.grid.major = element_line(linetype = 'dotted', color = 'white', size= 0.5))
 
+Boxplot_FISH_counts_all <- ggplot(counts_FISH, aes(Region, conc.mn))+
+  geom_boxplot()+facet_grid(Depth~.)+ geom_text(aes(label=Domain), size=3, position = position_jitter(w = 0.3))+
+  theme(axis.text.x = element_text(angle = 90))+theme_plot+scale_y_log10(name = "cell conc. [log10(Cells/mL)]")+
+  theme(panel.grid.minor = element_line(linetype = 'dotted', color = 'white', size= 0.5))+
+  theme(panel.grid.major = element_line(linetype = 'dotted', color = 'white', size= 0.5))
+
+
 #DAPI 
 Boxplot_DAPI_counts <- ggplot(subset(counts_DAPI, Depth %in% c("DCM")), aes(Region, conc.mn))+
+  geom_boxplot()+facet_grid(Depth~.)+ geom_text(aes(label=Domain), size=3, position = position_jitter(w = 0.3))+
+  theme(axis.text.x = element_text(angle = 90))+theme_plot+scale_y_log10(name = "cell conc. [log10(Cells/mL)]")+
+  theme(panel.grid.minor = element_line(linetype = 'dotted', color = 'white', size= 0.5))+
+  theme(panel.grid.major = element_line(linetype = 'dotted', color = 'white', size= 0.5))
+
+Boxplot_DAPI_counts_all <- ggplot(counts_DAPI, aes(Region, conc.mn))+
   geom_boxplot()+facet_grid(Depth~.)+ geom_text(aes(label=Domain), size=3, position = position_jitter(w = 0.3))+
   theme(axis.text.x = element_text(angle = 90))+theme_plot+scale_y_log10(name = "cell conc. [log10(Cells/mL)]")+
   theme(panel.grid.minor = element_line(linetype = 'dotted', color = 'white', size= 0.5))+
@@ -93,7 +107,7 @@ Plot_fish_east_west.p <- ggplot(na.omit(subset(data.fish, Depth %in% c("DCM", "E
   geom_point(aes(colour = Region), size =4)+
   xlab("Longitude [°East]")+
   ylab("log10(cells/ml")+
-  geom_text(aes(label = StationName), position = position_jitter(h= 0.1))+
+  geom_text(aes(label = StationName), nudge_y= 0.08)+
   geom_smooth(aes(linetype = Depth), method = "gam", formula = y ~ ns(x,2), 
               show.legend = FALSE, se=FALSE, colour = "black")+
   ggpmisc::stat_poly_eq(formula = y ~ ns(x,2), parse = TRUE)
@@ -109,7 +123,7 @@ Plot_dapi_east_west.p <- ggplot(na.omit(subset(data.dapi, Depth %in% c("DCM", "E
   geom_point(aes(colour = Region), size =4)+
   xlab("Longitude [°East]")+
   ylab("log10(cells/ml")+
-  geom_text(aes(label = StationName), position = position_jitter(h= 0.1))+
+  geom_text(aes(label = StationName), nudge_y= 0.08)+
   geom_smooth(aes(linetype = Depth), method = "gam", formula = y ~ ns(x,2), 
               show.legend = FALSE, se=FALSE, colour = "black")+
   ggpmisc::stat_poly_eq(formula = y ~ ns(x,2), parse = TRUE)
@@ -156,12 +170,12 @@ species.scores <- as.data.frame(scores(counts_nmds, "species"))
 species.scores$species <- rownames(species.scores)
 
 nmds_rel_ab_dcm <- ggplot()+
-  geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.5) + 
-  geom_point(data=data.scores,aes(x=NMDS1,y=NMDS2,shape=Region,colour=Region),size=2) + 
-  geom_text(data=data.scores,aes(x=NMDS1,y=NMDS2,label=site),size=4,vjust=-0.25)+
+  geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.5, size = 5) + 
+  geom_point(data=data.scores,aes(x=NMDS1,y=NMDS2,shape=Region,colour=Region),size=4) + 
+  geom_text(data=data.scores,aes(x=NMDS1,y=NMDS2,label=site),size=5,vjust=-0.25)+
   scale_colour_manual(values=c("EGC" = "blue", "WSC" = "red")) +
   coord_equal() +
-  theme_bw()+
+  theme_plot+
   theme(panel.background = element_blank(), 
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),  
@@ -183,18 +197,18 @@ plot(counts_nmds_epi, type = "t")
 
 data.scores.epi <- as.data.frame(scores(counts_nmds_epi))  
 data.scores.epi$site <- rownames(data.scores.epi) 
-data.scores.epi$Region[data.scores.epi$site %in% EGC] <- "EGC"
-data.scores.epi$Region[data.scores.epi$site %in% WSC] <- "WSC"
+data.scores.epi$Region[data.scores.epi$site %in% EGC] <- "EGC" #data.scores$Water_mass[data.scores$site %in% AW] <- "AW"
+data.scores.epi$Region[data.scores.epi$site %in% WSC] <- "WSC" #data.scores$Water_mass[data.scores$site %in% PSWw] <- "PSWw"
 species.scores.epi <- as.data.frame(scores(counts_nmds_epi, "species")) 
 species.scores.epi$species <- rownames(species.scores.epi)
 
 nmds_rel_ab_epi <- ggplot()+
-  geom_text(data=species.scores.epi,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.5) + 
-  geom_point(data=data.scores.epi,aes(x=NMDS1,y=NMDS2,shape=Region,colour=Region),size=2) + 
+  geom_text(data=species.scores.epi,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.5, size = 5) + 
+  geom_point(data=data.scores.epi,aes(x=NMDS1,y=NMDS2,shape=Region,colour=Region),size=4) + 
   geom_text(data=data.scores.epi,aes(x=NMDS1,y=NMDS2,label=site),size=4,vjust=-0.25)+
-  scale_colour_manual(values=c("EGC" = "blue", "WSC" = "red")) +
+  scale_colour_manual(values=c("EGC" = "blue", "WSC" = "red")) + #("PSWw" = "blue", "AW" = "red")
   coord_equal() +
-  theme_bw()+
+  theme_plot+
   theme(panel.background = element_blank(), 
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),  
@@ -211,7 +225,6 @@ pca.rel <- pca.rel[,c("ALT", "ARCH", "BACT", "CFX", "CREN", "DELTA", "EUB", "GAM
 pca.re.data.prcomp <- prcomp(pca.rel, center = TRUE,scale. = TRUE)
 summary(pca.re.data.prcomp)
 str(pca.re.data.prcomp)
-library(ggbiplot)
 
 ggbiplot(pca.re.data.prcomp, labels=rownames(pca.rel))
 pca.data.rel.Region <- c(rep("EGC", 2), rep("WSC", 10))

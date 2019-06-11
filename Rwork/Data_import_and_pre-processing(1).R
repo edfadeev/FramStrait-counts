@@ -75,10 +75,15 @@ counts_FISH <- counts_FISH %>%
   separate(SAMPLE_NAME, c("StationName", "Depth", "Domain"),"-")
 
 ##################################
-## call water layers and add regions
+## call water layers and add regions and water masses
 ##################################
+#Regions
 EGC <- c("EG1","EG4")
 WSC <- c("HG9","HG7","HG5","HG4","HG2","HG1","N3","N4","N5", "SV2")
+
+#water masses
+PSWw <- c("EG1","EG4", "HG4", "HG5", "HG7", "HG9", "N3", "N4", "N5")
+AW <- c("HG2","HG1", "SV2")
 
 counts_DAPI$Region[counts_DAPI$StationName %in% EGC] <- "EGC"
 counts_DAPI$Region[counts_DAPI$StationName %in% WSC] <- "WSC"

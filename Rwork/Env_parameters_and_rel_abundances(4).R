@@ -78,17 +78,15 @@ chart.Correlation(cor.test, histogram=TRUE, pch=19)
 #Redundancy test for constrained variables
 
 ## RDA surface for FISH counts
-counts.rel.ab.surf <- subset(counts.rel.ab[counts.rel.ab$Depth %in% c("DCM"),])
+counts.rel.ab.surf <- subset(counts.rel.ab[counts.rel.ab$Depth %in% c("DCM","EPI"),])
 counts.rda.surf <- counts.rel.ab.surf[,c("Depth", "Domain", "StationName", "proportion")]
 counts.rda.surf %>% spread(Domain, proportion) -> counts.sp.rda
 counts.rda <- counts.sp.rda[,c("Depth", "StationName", "ALT", "ARCH", "BACT", "CFX", "CREN", "DELTA", "EUB", "GAM", "OPI", "POL", "ROS", "SAR11", "SAR202", "SAR324", "SAR406", "VER")]
-counts.rda <- subset(counts.rda, StationName!="HG1")
-env.DCM <- subset(env[env$Depth %in% c("DCM"),])
-env.rda.DCM <- subset(env.DCM, StationName!="HG1")
-counts.rda.meta <- env.rda.DCM %>% left_join(counts.rda, by=c("StationName"))
-rownames(counts.rda.meta) <- env.rda.DCM$sample_ID
-rownames(counts.rda) <- env.rda.DCM$sample_ID # here check this 
-rownames(env.rda.DCM) <- env.rda.DCM$sample_ID
+env.DCM <- subset(env[env$Depth %in% c("DCM", "EPI"),])
+counts.rda.meta <- env.DCM %>% left_join(counts.rda, by=c("StationName", "Depth"))
+rownames(counts.rda.meta) <- env.DCM$sample_ID
+rownames(counts.rda) <- env.DCM$sample_ID # here check this 
+rownames(env.DCM) <- env.DCM$sample_ID
 counts.rda.meta$sample_ID <- as.factor(counts.rda.meta$sample_ID)
 counts.rda.meta <- counts.rda.meta[colnames(counts.rda.meta) != "X"]
 counts.rda.o <- counts.rda[colnames(counts.rda) != "StationName"]
@@ -131,18 +129,18 @@ arrowhead = arrow(length = unit(0.02, "npc"))
 evals_prop <- 100 * ord$CCA$eig[1:2] # NOT CORRECT VALUE!!!
 #use summary(ord) to add manually in the axis the "proportion explained" value
 rda_plot <- ggplot() +
-  geom_point(data = sites, aes(x = RDA1, y = RDA2, colour = Region),  size = 4) +
-  geom_text(data = sites,aes(x = RDA1, y = RDA2,label = StationName), nudge_y= 0.1,size=3)+
+  geom_point(data = sites, aes(x = RDA1, y = RDA2, colour = Water_mass, shape = Depth),  size = 4) +
+  geom_text(data = sites,aes(x = RDA1, y = RDA2,label = StationName), nudge_y= 0.2,size=4)+
   guides(col = guide_legend(override.aes = list(size = 3))) +
   labs(x = sprintf("\nAxis1 [%s%% variance]", round(evals_prop[1], 2)),
        y = sprintf("Axis2 [%s%% variance]\n", round(evals_prop[2], 2))) +
   coord_fixed(sqrt(ord$CCA$eig[2] / ord$CCA$eig[1])) +
   theme_plot+
   geom_segment(mapping = arrow_mapFL, size = .5, data = arrowdfFL, color = "black", arrow = arrowhead) +
-  geom_text(mapping = label_mapFL, size = 5, data = arrowdfFL, show.legend = FALSE, nudge_y= 0.1)+
+  geom_text(mapping = label_mapFL, size = 4, data = arrowdfFL, show.legend = FALSE, nudge_y= 0.2)+
   theme(panel.grid.minor = element_line(linetype = 'dotted', color = 'white', size= 0.5))+
   theme(panel.grid.major = element_line(linetype = 'dotted', color = 'white', size= 0.5))
-rda_plot + scale_colour_manual(values=c("EGC"="blue","WSC"="red"))+
+rda_plot + scale_colour_manual(values=c("PSWw"="blue","AW"="red", "EBDW"="violet"))+
   theme_plot
 
 

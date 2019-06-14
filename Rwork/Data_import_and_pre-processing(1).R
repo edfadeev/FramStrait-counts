@@ -35,7 +35,7 @@ centre_scale2 <- function(x) {
 env.par= c("Temperature","Salinity", "Chla_fluor")
 env=env_raw
 env[,env.par]<- apply(env[,env.par], MARGIN=2, FUN=centre_scale2)
-
+env <- subset(env, !StationName == "SV2")
 ###################################
 ## calculate cell concentration
 ###################################
@@ -58,6 +58,8 @@ counts_DAPI$conc.sd <- (counts_DAPI$DAPI_Nr_Set.sd*calc.factor)/counts_DAPI$volu
 counts_DAPI <- counts_DAPI %>% 
   separate(SAMPLE_NAME, c("StationName", "Depth", "Domain"),"-")
 
+counts_DAPI <- subset(counts_DAPI, !StationName == "SV2")
+
 #cell concentration for FISH
 counts_FISH <- as.data.frame(as.list(aggregate(DAPI_Nr_SubSet ~SAMPLE_NAME, data=raw.counts.SH, 
                                                           FUN = function(x) c(mn = mean(x), md =  median(x), sd = sd(x), n = length(x)))))
@@ -73,13 +75,13 @@ counts_FISH$conc.sd <- (counts_FISH$DAPI_Nr_SubSet.sd*calc.factor)/counts_FISH$v
 
 counts_FISH <- counts_FISH %>% 
   separate(SAMPLE_NAME, c("StationName", "Depth", "Domain"),"-")
-
+counts_FISH <- subset(counts_FISH, !StationName == "SV2")
 ##################################
 ## call water layers and add regions and water masses
 ##################################
-#Regions
-EGC <- c("EG1","EG4")
-WSC <- c("HG9","HG7","HG5","HG4","HG2","HG1","N3","N4","N5", "SV2")
+#Regions as in ice covered:EGC ice-free:WSC (Fadeev et al., 2018)
+EGC <- c("EG1","EG4","N3","N4","N5")
+WSC <- c("HG9","HG7","HG5","HG4","HG2","HG1")
 
 #water masses
 PSWw <- c("EG1","EG4", "HG4", "HG5", "HG7", "HG9", "N3", "N4", "N5")
@@ -103,7 +105,7 @@ counts_FISH$long[counts_FISH$StationName == "HG9"] <- 2.841
 counts_FISH$long[counts_FISH$StationName == "N4"] <- 4.508
 counts_FISH$long[counts_FISH$StationName == "N3"] <- 5.166
 counts_FISH$long[counts_FISH$StationName == "N5"] <- 3.062
-counts_FISH$long[counts_FISH$StationName == "SV2"] <- 9.514
+#counts_FISH$long[counts_FISH$StationName == "SV2"] <- 9.514
 
 counts_DAPI$long[counts_DAPI$StationName == "EG1"] <- -5.418
 counts_DAPI$long[counts_DAPI$StationName == "EG4"] <- -2.729
@@ -116,7 +118,7 @@ counts_DAPI$long[counts_DAPI$StationName == "HG9"] <- 2.841
 counts_DAPI$long[counts_DAPI$StationName == "N4"] <- 4.508
 counts_DAPI$long[counts_DAPI$StationName == "N3"] <- 5.166
 counts_DAPI$long[counts_DAPI$StationName == "N5"] <- 3.062
-counts_DAPI$long[counts_DAPI$StationName == "SV2"] <- 9.514
+#counts_DAPI$long[counts_DAPI$StationName == "SV2"] <- 9.514
 
 
 save.image("card_fish_water_column_ps99.Rdata")

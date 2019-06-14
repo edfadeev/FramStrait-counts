@@ -37,7 +37,6 @@ Plot_depth_profiles.p <- ggplot()+
 ##################################
 # Concentration surfaces of groups
 ##################################
-
 dcm.group <- subset(counts_FISH[counts_FISH$Depth %in% c("DCM"),])
 dcm.group.data <- aggregate(conc.mn~Region+Domain, dcm.group,mean)
 dcm.group.data$Domain <- factor(dcm.group.data$Domain, levels = rev(c("EUB","SAR11","BACT","GAM","VER", "OPI", "POL", "ROS", "CFX", "ALT", "ARCH", "DELTA", "SAR324", "CREN", "SAR202", "SAR406" )))

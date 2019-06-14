@@ -65,7 +65,7 @@ Scatter_DAPI_counts <- ggplot(counts_DAPI_aggr2, aes(x=long, y=conc.mn)) + geom_
   theme(axis.text.x = element_text(angle = 90))+theme_plot+scale_y_log10(name = "CARD-FISH [log10(Cells/mL)]")+
   theme(panel.grid.minor = element_line(linetype = 'dotted', color = 'white', size= 0.5))+
   theme(panel.grid.major = element_line(linetype = 'dotted', color = 'white', size= 0.5))
-
+Scatter_DAPI_counts
 
 #Boxplots of cell concentration DCM:
 #FISH
@@ -74,13 +74,14 @@ Boxplot_FISH_counts <- ggplot(subset(counts_FISH, Depth %in% c("DCM")), aes(Regi
   theme(axis.text.x = element_text(angle = 90))+theme_plot+scale_y_log10(name = "cell conc. [log10(Cells/mL)]")+
   theme(panel.grid.minor = element_line(linetype = 'dotted', color = 'white', size= 0.5))+
   theme(panel.grid.major = element_line(linetype = 'dotted', color = 'white', size= 0.5))
+Boxplot_FISH_counts
 
 Boxplot_FISH_counts_all <- ggplot(counts_FISH, aes(Region, conc.mn))+
   geom_boxplot()+facet_grid(Depth~.)+ geom_text(aes(label=Domain), size=3, position = position_jitter(w = 0.3))+
   theme(axis.text.x = element_text(angle = 90))+theme_plot+scale_y_log10(name = "cell conc. [log10(Cells/mL)]")+
   theme(panel.grid.minor = element_line(linetype = 'dotted', color = 'white', size= 0.5))+
   theme(panel.grid.major = element_line(linetype = 'dotted', color = 'white', size= 0.5))
-
+Boxplot_FISH_counts_all
 
 #DAPI 
 Boxplot_DAPI_counts <- ggplot(subset(counts_DAPI, Depth %in% c("DCM")), aes(Region, conc.mn))+
@@ -98,20 +99,28 @@ Boxplot_DAPI_counts_all <- ggplot(counts_DAPI, aes(Region, conc.mn))+
 ##################################
 ## East vs West 
 ##################################
-#Plot of bacterial (FISH) cell concentration all groups East vs West 
-data.fish <-counts_FISH_aggr2 
-data.fish$conc.mn <- log10(data.fish$conc.mn)
-data.fish$smooth <- 1
+#Plot of bacterial (EUB) cell concentration all groups Ice-covered vs Ice-free region 
 
-Plot_fish_east_west.p <- ggplot(na.omit(subset(data.fish, Depth %in% c("DCM", "EPI", "MESO", "BATHY"))), aes(x = long, y = conc.mn, shape = Depth, group = Depth))+  
+counts_FISH_EUB <- subset(counts_FISH, Domain %in% c("EUB"))
+counts_FISH_EUB  <- aggregate(conc.mn~StationName+Region+Depth+long,counts_FISH_EUB,mean)
+
+# data.fish <-counts_FISH_aggr2 
+# data.fish$conc.mn <- log10(data.fish$conc.mn)
+# data.fish$smooth <- 1
+
+counts_FISH_EUB$conc.mn <- log10(counts_FISH_EUB$conc.mn)
+counts_FISH_EUB$smooth <- 1
+
+Plot_eub_east_west.p <- ggplot(na.omit(subset(counts_FISH_EUB, Depth %in% c("DCM", "EPI", "MESO", "BATHY"))), aes(x = long, y = conc.mn, shape = Depth, group = Depth))+scale_shape_manual(values=c(19, 17, 15, 3), labels= c("Surface", "Epipelagic", "Mesopelagic", "Bathypelagic"))+  
   geom_point(aes(colour = Region), size =4)+
   xlab("Longitude [°East]")+
-  ylab("log10(cells/ml")+
+  ylab("Cell density [log10(cells/ml)]")+
   geom_text(aes(label = StationName), nudge_y= 0.08)+
   geom_smooth(aes(linetype = Depth), method = "gam", formula = y ~ ns(x,2), 
               show.legend = FALSE, se=FALSE, colour = "black")+
   ggpmisc::stat_poly_eq(formula = y ~ ns(x,2), parse = TRUE)
-Plot_fish_east_west.p + scale_colour_manual(values=c("EGC"="blue","WSC"="red"))+
+Plot_eub_east_west.p + labs(title = "Bacteria density in the water layers\n", color = "Region\n") +
+  scale_colour_manual(values=c("EGC"="blue","WSC"="red"), labels= c("Ice covered", "Ice free"))+
   theme_plot
 
 #Plot of total cells (DAPI)
@@ -119,15 +128,16 @@ data.dapi <-counts_DAPI_aggr2
 data.dapi$conc.mn <- log10(data.dapi$conc.mn)
 data.dapi$smooth <- 1
 
-Plot_dapi_east_west.p <- ggplot(na.omit(subset(data.dapi, Depth %in% c("DCM", "EPI", "MESO", "BATHY"))), aes(x = long, y = conc.mn, shape = Depth, group = Depth))+  
+Plot_dapi_east_west.p <- ggplot(na.omit(subset(data.dapi, Depth %in% c("DCM", "EPI", "MESO", "BATHY"))), aes(x = long, y = conc.mn, shape = Depth, group = Depth))+scale_shape_manual(values=c(19, 17, 15, 3), labels= c("Surface", "Epipelagic", "Mesopelagic", "Bathypelagic"))+  
   geom_point(aes(colour = Region), size =4)+
   xlab("Longitude [°East]")+
-  ylab("log10(cells/ml")+
+  ylab("Cell density [log10(cells/ml)]")+
   geom_text(aes(label = StationName), nudge_y= 0.08)+
   geom_smooth(aes(linetype = Depth), method = "gam", formula = y ~ ns(x,2), 
               show.legend = FALSE, se=FALSE, colour = "black")+
   ggpmisc::stat_poly_eq(formula = y ~ ns(x,2), parse = TRUE)
-Plot_dapi_east_west.p + scale_colour_manual(values=c("EGC"="blue","WSC"="red"))+
+Plot_dapi_east_west.p + labs(title = "Total cell density in the water layers\n", color = "Region\n") +
+  scale_colour_manual(values=c("EGC"="blue","WSC"="red"), labels= c("Ice covered", "Ice free"))+
   theme_plot
 
 ##################################
@@ -145,6 +155,8 @@ colnames(fish.rel)[11] <- 'fish.sd'
 counts.rel.ab <- dapi.rel %>% left_join(fish.rel, by=c("StationName", "Domain", "Depth"))
 counts.rel.ab <- counts.rel.ab[,c("StationName", "Depth", "Domain", "dapi.mn", "fish.mn")]
 counts.rel.ab$proportion <- counts.rel.ab$fish.mn*100/counts.rel.ab$dapi.mn
+counts.rel.ab$Region[counts.rel.ab$StationName %in% WSC] <- "WSC"
+counts.rel.ab$Region[counts.rel.ab$StationName %in% EGC] <- "EGC"
 
 ##################################
 # NMDS for surface layers
@@ -234,7 +246,7 @@ PCA_plot_rel + scale_colour_manual(values=c("EGC"="blue","WSC"="red"))+
   theme_plot
 
 ##################################
-# ANOVA (cell concentration is exlpained by water masses and depth over region)
+# ANOVA (cell concentration is exlpained by depth over region)
 ##################################
 # data preparation
 aov.counts <- data.fish
@@ -252,25 +264,25 @@ anov.counts1 <-aov(conc.mn ~ Region/Depth, aov.counts)
 summary(anov.counts1)
 plot(resid(anov.counts1) ~ fitted(anov.counts1))
 
-# Df Sum Sq Mean Sq F value Pr(>F)    
-# Region        1  0.104  0.1038   2.333  0.135    
-# Region:Depth  7 19.066  2.7237  61.205 <2e-16 ***
-#   Residuals    37  1.647  0.0445                   
+# Df Sum Sq Mean Sq F value   Pr(>F)    
+# Region        1  0.023  0.0225   0.438    0.512    
+# Region:Depth  7 17.869  2.5528  49.682 2.57e-16 ***
+#   Residuals    35  1.798  0.0514                     
 # ---
 #   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 
 #balance/unbalance:
-!is.list(replications(conc.mn ~ Water_mass + Depth, aov.counts)) # FALSE
+!is.list(replications(conc.mn ~ Region + Depth, aov.counts)) # FALSE
 
 #nested anova
-anov.counts2 <-aov(conc.mn ~ Water_mass/Depth, aov.counts)
+anov.counts2 <-aov(conc.mn ~ Region/Depth, aov.counts)
 summary(anov.counts2)
 plot(resid(anov.counts2) ~ fitted(anov.counts2))
 
 # Df Sum Sq Mean Sq F value   Pr(>F)    
-# Water_mass        2 17.250   8.625  192.28  < 2e-16 ***
-#   Water_mass:Depth  3  1.772   0.591   13.17 4.01e-06 ***
-#   Residuals        40  1.794   0.045                     
+# Region        1  0.023  0.0225   0.438    0.512    
+# Region:Depth  7 17.869  2.5528  49.682 2.57e-16 ***
+#   Residuals    35  1.798  0.0514                     
 # ---
 #   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 
@@ -282,10 +294,10 @@ plot(resid(anov.counts2) ~ fitted(anov.counts2))
 
 counts_abs.dist <- dist(aov.counts[,c("conc.mn")],"euclidean")
 
-adon.counts <- adonis(counts_abs.dist ~  Water_mass + Region + Depth, aov.counts)
+adon.counts <- adonis(counts_abs.dist ~  Region + Depth + Water_mass, aov.counts)
 
 # Call:
-#   adonis(formula = counts_abs.dist ~ Water_mass + Region + Depth,      data = aov.counts) 
+#   adonis(formula = counts_abs.dist ~ Region + Depth + Water_mass,      data = aov.counts) 
 # 
 # Permutation: free
 # Number of permutations: 999
@@ -293,15 +305,71 @@ adon.counts <- adonis(counts_abs.dist ~  Water_mass + Region + Depth, aov.counts
 # Terms added sequentially (first to last)
 # 
 # Df SumsOfSqs MeanSqs F.Model      R2 Pr(>F)    
-# Water_mass  2   17.2499  8.6250 213.616 0.82868  0.001 ***
-#   Region      1    0.2984  0.2984   7.390 0.01433  0.006 ** 
-#   Depth       3    1.6931  0.5644  13.977 0.08133  0.001 ***
-#   Residuals  39    1.5747  0.0404         0.07565           
-# Total      45   20.8160                 1.00000           
+# Region      1    0.0225  0.0225   0.531 0.00114  0.454    
+# Depth       4   17.7952  4.4488 104.936 0.90375  0.001 ***
+#   Water_mass  1    0.3040  0.3040   7.171 0.01544  0.006 ** 
+#   Residuals  37    1.5686  0.0424         0.07966           
+# Total      43   19.6903                 1.00000           
 # ---
 #   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 
+##################################
+# Pairwise t.test
+##################################
+#all water layers:
+counts_ttest <- merge(fish.rel, dapi.rel ,by =c("StationName", "Domain", "Depth", "Region"))
+
+counts_ttest <- counts_ttest[,c("Domain", "fish.mn","Region")]
+counts.t.EGC <- subset(counts_ttest, Region %in% c("EGC"))
+counts.t.EGC <-counts.t.EGC[,c("Domain", "fish.mn")]
+t.EGC <- aggregate(.~Domain, data=counts.t.EGC, FUN = mean)
+counts.t.WSC <- subset(counts_ttest, Region %in% c("WSC"))
+counts.t.WSC <-counts.t.WSC[,c("Domain", "fish.mn")]
+t.WSC <- aggregate(.~Domain, data=counts.t.WSC, FUN = mean)
 
 
+t.test(t.EGC$fish.mn,
+       t.WSC$fish.mn,
+       paired=TRUE,
+       conf.level=0.95)
+
+# Paired t-test
+# 
+# data:  t.EGC$fish.mn and t.WSC$fish.mn
+# t = -0.9364, df = 15, p-value = 0.3639
+# alternative hypothesis: true difference in means is not equal to 0
+# 95 percent confidence interval:
+#   -12272.343   4780.567
+# sample estimates:
+#   mean of the differences 
+# -3745.888
+
+# t-test for Surface
+counts_ttest_dcm <- fish.rel[,c("fish.mn", "Domain", "Depth", "Region")]
+
+counts_ttest_dcm <- subset(counts_ttest_dcm, Depth %in% c("DCM"))
+
+counts.t.EGC.dcm <- subset(counts_ttest_dcm, Region %in% c("EGC"))
+counts.t.EGC.dcm <-counts.t.EGC.dcm[,c("Domain", "fish.mn")]
+t.EGC.dcm <- aggregate(.~Domain, data=counts.t.EGC.dcm, FUN = mean)
+counts.t.WSC.dcm <- subset(counts_ttest, Region %in% c("WSC"))
+counts.t.WSC.dcm <-counts.t.WSC.dcm[,c("Domain", "fish.mn")]
+t.WSC.dcm <- aggregate(.~Domain, data=counts.t.WSC.dcm, FUN = mean)
+
+t.test(t.EGC.dcm$fish.mn,
+       t.WSC.dcm$fish.mn,
+       paired=TRUE,
+       conf.level=0.95)
+
+# Paired t-test
+# 
+# data:  t.EGC.dcm$fish.mn and t.WSC.dcm$fish.mn
+# t = 2.0771, df = 15, p-value = 0.05538
+# alternative hypothesis: true difference in means is not equal to 0
+# 95 percent confidence interval:
+#   -1579.038 122339.840
+# sample estimates:
+#   mean of the differences 
+# 60380.4 
 save.image("card_fish_water_column_ps99.Rdata")
 

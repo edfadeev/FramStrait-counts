@@ -32,10 +32,11 @@ centre_scale2 <- function(x) {
   scale(x, scale = FALSE)
 }
 
-env.par= c("Temperature","Salinity", "Chla_fluor")
+env.par= c("Temperature","Salinity", "Chla_fluor", "NO3.NO2", "NO2", "NO3", "SiO3", "PO4","NH4")
 env=env_raw
 env[,env.par]<- apply(env[,env.par], MARGIN=2, FUN=centre_scale2)
 env <- subset(env, !StationName == "SV2")
+
 ###################################
 ## calculate cell concentration
 ###################################
@@ -76,10 +77,11 @@ counts_FISH$conc.sd <- (counts_FISH$DAPI_Nr_SubSet.sd*calc.factor)/counts_FISH$v
 counts_FISH <- counts_FISH %>% 
   separate(SAMPLE_NAME, c("StationName", "Depth", "Domain"),"-")
 counts_FISH <- subset(counts_FISH, !StationName == "SV2")
+
 ##################################
 ## call water layers and add regions and water masses
 ##################################
-#Regions as in ice covered:EGC ice-free:WSC (Fadeev et al., 2018)
+#Regions as in ice covered:EGC ice-free:WSC (Fadeev et al., 2019)
 EGC <- c("EG1","EG4","N3","N4","N5")
 WSC <- c("HG9","HG7","HG5","HG4","HG2","HG1")
 

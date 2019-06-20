@@ -87,12 +87,18 @@ nmds_all_wm <- ggplot()+
 nmds_all_wm
 
 ###################################
-## PCA
+## PCA DCM and EPI
 ###################################
 pca.all.data.prcomp <- prcomp(c_wm_nmds_all, center = TRUE,scale. = TRUE)
 summary(pca.all.data.prcomp)
 str(pca.all.data.prcomp)
 ggbiplot(pca.all.data.prcomp, labels=rownames(c_wm_nmds_all))
+
+pca.data.rel.Region <- c(rep("Ice-covered", 5), rep("Ice-free", 6))
+
+PCA_plot_rel_all <- ggbiplot(pca.all.data.prcomp,ellipse=TRUE,  labels=rownames(c_wm_nmds_all), groups=pca.data.rel.Region)+theme_plot
+PCA_plot_rel_all + scale_colour_manual(values=c("Ice-covered"="blue","Ice-free"="red"))+
+  theme_plot
 
 ###################################
 ## PCoA

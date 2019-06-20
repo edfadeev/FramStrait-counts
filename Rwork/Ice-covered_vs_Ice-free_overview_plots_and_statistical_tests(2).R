@@ -228,7 +228,7 @@ nmds_rel_ab_epi <- ggplot()+
   annotate("text", x =-0.1, y = -0.1, label=paste('Stress =',round(counts_nmds_epi$stress,3)))
 
 ##################################
-# PCA for surface layers
+# PCA for DCM counts and regions
 ##################################
 pca.rel <- counts.rel.ab.agg
 rownames(pca.rel) <- pca.rel$StationName

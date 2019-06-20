@@ -157,4 +157,7 @@ rda_plot <- ggplot() +
 rda_plot + scale_colour_manual(values=c("EGC"="blue","WSC"="red"), labels = c("Ice-covered", "Ice-free"))+
   theme_plot
 
+###
+
+
 save.image("card_fish_water_column_ps99.Rdata")

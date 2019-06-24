@@ -17,33 +17,83 @@ library(tidyr)
 ###################################
 ## NMDS
 ###################################
-#modify data for nmds
-counts.wm.rel <- counts.rel.ab[,c("Depth", "Domain", "StationName", "proportion", "Region")]
-counts.wm.rel %>% spread(Domain, proportion) -> counts.wm.all.depths
-counts.wm.wmetad <- counts.wm.all.depths %>% left_join(env, by=c("StationName", "Depth"))
+FISH.ra<- counts_FISH[,c("StationName","Depth", "Domain", "Region")]
+FISH.ra$FISH.ra <-counts_FISH$conc.mn/counts_DAPI$DAPI_conc.mn 
 
-c_wm_all <- counts.wm.wmetad[,c("sample_ID", "StationName", "Depth", "Region", "ALT", "ARCH", "BACT", "CFX", "CREN", "DELTA", "EUB", "GAM", "OPI", "POL", "ROS", "SAR11", "SAR202","SAR324", "SAR406", "VER")]
-c_wm_all <- subset(c_wm_all, !Depth == "BATHY")
-c_wm_all <- subset(c_wm_all, !Depth == "ABYSS")
-c_wm_all <- subset(c_wm_all, !Depth == "MESO")
-rownames(c_wm_all) <- c_wm_all$sample_ID
-c_wm_nmds_all <- c_wm_all[,c("ALT", "ARCH", "BACT", "CFX", "CREN", "DELTA", "EUB", "GAM", "OPI", "POL", "ROS", "SAR11", "SAR202","SAR324", "SAR406", "VER")]
+FISH.ra %>% spread(Domain,FISH.ra)-> FISH.ra.wide
 
-#nmds all 
-c_wm_nmds_all_metaMDS <- metaMDS(c_wm_nmds_all, maxit= 100, trace=TRUE)
-str(c_wm_nmds_all_metaMDS) 
-plot(c_wm_nmds_all_metaMDS, type = "t")
+#Calculate NMDS and add labels 
+#list all taxa (excluding EUB)
+taxa <- c("ALT", "ARCH", "BACT", "CFX", "CREN", "DELTA", "GAM", "OPI", "POL", "ROS", "SAR11", "SAR202","SAR324", "SAR406", "VER")
+all_metaMDS <- metaMDS(FISH.ra.wide[,taxa], maxit= 100, trace=TRUE)
 
-#nmds data for plotting
-c_evn_all <- c_wm_all[,c("sample_ID", "StationName", "Depth", "Region")] 
-#c_evn_all$Depth<- factor(c_evn_all$Depth, 
-#                               levels = c("DCM", "EPI"))
-c_evn_all$NMDS1<-c_wm_nmds_all_metaMDS$points[ ,1] 
-c_evn_all$NMDS2<-c_wm_nmds_all_metaMDS$points[ ,2] 
-data.scores.all <- as.data.frame(scores(c_wm_nmds_all_metaMDS))  
-data.scores.all$sample_ID <- rownames(data.scores.all) 
-species.scores.all <- as.data.frame(scores(c_wm_nmds_all_metaMDS, "species")) 
-species.scores.all$species <- rownames(species.scores.all)
+data.scores <- as.data.frame(scores(all_metaMDS))  #Using the scores function from vegan to extract the site scores and convert to a data.frame
+data.scores$site <- FISH.ra.wide$StationName  # create a column of site names, from the rownames of data.scores
+data.scores$Depth <- FISH.ra.wide$Depth  #  add the grp variable created earlier
+data.scores$Region <- FISH.ra.wide$Region
+
+species.scores <- as.data.frame(scores(all_metaMDS, "species"))  #Using the scores function from vegan to extract the species scores and convert to a data.frame
+species.scores$species <- rownames(species.scores)  # create a column of species, from the rownames of species.scores
+
+#Plot NMDS
+ggplot() + 
+  geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.5) +  # add the species labels
+  geom_point(data=data.scores,aes(x=NMDS1,y=NMDS2, colour = Region, shape= Depth),size=5) + # add the point markers
+  geom_text(data=data.scores,aes(x=NMDS1,y=NMDS2,label=site),size=3,nudge_y =-0.1) +  # add the site labels
+  scale_colour_manual(values=c("WSC" = "red", "EGC" = "blue")) +
+  coord_equal() +
+  theme_bw()
+
+
+#Calculate NMDS of only DCM and EPI depths
+FISH.ra.wide.SRF <- FISH.ra.wide[FISH.ra.wide$Depth %in% c("DCM","EPI"),]
+all_metaMDS.SRF <- metaMDS(FISH.ra.wide.SRF[,taxa], maxit= 100, trace=TRUE)
+
+data.scores.SRF <- as.data.frame(scores(all_metaMDS.SRF))  #Using the scores function from vegan to extract the site scores and convert to a data.frame
+data.scores.SRF$site <- FISH.ra.wide.SRF$StationName  # create a column of site names, from the rownames of data.scores
+data.scores.SRF$Depth <- FISH.ra.wide.SRF$Depth  #  add the grp variable created earlier
+data.scores.SRF$Region <- FISH.ra.wide.SRF$Region
+
+species.scores.SRF <- as.data.frame(scores(all_metaMDS.SRF, "species"))  #Using the scores function from vegan to extract the species scores and convert to a data.frame
+species.scores.SRF$species <- rownames(species.scores.SRF)  # create a column of species, from the rownames of species.scores
+
+#Plot NMDS
+ggplot() + 
+  geom_text(data=species.scores.SRF,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.5) +  # add the species labels
+  geom_point(data=data.scores.SRF,aes(x=NMDS1,y=NMDS2, colour = Region, shape= Depth),size=5) + # add the point markers
+  geom_text(data=data.scores.SRF,aes(x=NMDS1,y=NMDS2,label=site),size=3,nudge_y =-0.1) +  # add the site labels
+  scale_colour_manual(values=c("WSC" = "red", "EGC" = "blue")) +
+  coord_equal() +
+  theme_bw()
+
+
+# #modify data for nmds
+# counts.wm.rel <- counts.rel.ab[,c("Depth", "Domain", "StationName", "proportion", "Region")]
+# counts.wm.rel %>% spread(Domain, proportion) -> counts.wm.all.depths
+# counts.wm.wmetad <- counts.wm.all.depths %>% left_join(env, by=c("StationName", "Depth"))
+# 
+# c_wm_all <- counts.wm.wmetad[,c("sample_ID", "StationName", "Depth", "Region", "ALT", "ARCH", "BACT", "CFX", "CREN", "DELTA", "EUB", "GAM", "OPI", "POL", "ROS", "SAR11", "SAR202","SAR324", "SAR406", "VER")]
+# c_wm_all <- subset(c_wm_all, !Depth == "BATHY")
+# c_wm_all <- subset(c_wm_all, !Depth == "ABYSS")
+# c_wm_all <- subset(c_wm_all, !Depth == "MESO")
+# rownames(c_wm_all) <- c_wm_all$sample_ID
+# c_wm_nmds_all <- c_wm_all[,c("ALT", "ARCH", "BACT", "CFX", "CREN", "DELTA", "EUB", "GAM", "OPI", "POL", "ROS", "SAR11", "SAR202","SAR324", "SAR406", "VER")]
+# 
+# #nmds all 
+# c_wm_nmds_all_metaMDS <- metaMDS(c_wm_nmds_all, maxit= 100, trace=TRUE)
+# str(c_wm_nmds_all_metaMDS) 
+# plot(c_wm_nmds_all_metaMDS, type = "t")
+# 
+# #nmds data for plotting
+# c_evn_all <- c_wm_all[,c("sample_ID", "StationName", "Depth", "Region")] 
+# #c_evn_all$Depth<- factor(c_evn_all$Depth, 
+# #                               levels = c("DCM", "EPI"))
+# c_evn_all$NMDS1<-c_wm_nmds_all_metaMDS$points[ ,1] 
+# c_evn_all$NMDS2<-c_wm_nmds_all_metaMDS$points[ ,2] 
+# data.scores.all <- as.data.frame(scores(c_wm_nmds_all_metaMDS))  
+# data.scores.all$sample_ID <- rownames(data.scores.all) 
+# species.scores.all <- as.data.frame(scores(c_wm_nmds_all_metaMDS, "species")) 
+# species.scores.all$species <- rownames(species.scores.all)
 
 # function for ellipses
 #taken from the excellent stackoverflow Q+A: http://stackoverflow.com/questions/13794419/plotting-ordiellipse-function-from-vegan-package-onto-nmds-plot-created-in-ggplo

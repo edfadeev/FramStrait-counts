@@ -5,8 +5,8 @@
 setwd("~/CARD-FISH/CARD-FISH_water_project/")
 
 #set working directory in windows
-#wd <- dirname(rstudioapi::getActiveDocumentContext()$path)
-#setwd(wd)
+wd <- dirname(rstudioapi::getActiveDocumentContext()$path)
+setwd(wd)
 ###################################
 ## Load required libraries
 ###################################
@@ -57,22 +57,32 @@ metadata %>%
 #raw counts
 raw.counts.SH <- read.csv("FOV_all_groups_SH.csv", sep = ",", dec = ".", header = TRUE)
 
-#microscope calculation factor
-calc.factor <- 99515.5458411807
-
-###DAPI
-#calculate cell concentration for each field of view
-raw.counts.SH$DAPI_conc <- (raw.counts.SH$DAPI_Nr_Set*calc.factor)/raw.counts.SH$Volume
-
-counts_DAPI <- as.data.frame(as.list((aggregate(DAPI_conc~SAMPLE_NAME, 
-                                                data=raw.counts.SH, 
-                                                FUN = function(x) c(conc.mn = mean(x), conc.md =  median(x), conc.sd = sd(x), n = length(x))))))
 #split sample name
-counts_DAPI <- counts_DAPI %>% 
+raw.counts.SH <- raw.counts.SH %>% 
   separate(SAMPLE_NAME, c("StationName", "Depth", "Domain"),"-")
 
-#remove SV2 station
-counts_DAPI <- subset(counts_DAPI, !StationName == "SV2")
+#remove SV2 station and ABYSS depth
+raw.counts.SH <- subset(raw.counts.SH, !StationName == "SV2")
+raw.counts.SH <- subset(raw.counts.SH, !Depth == "ABYSS")
+
+###calculate cell concentration for each field of view
+#microscope calculation factor
+calc.factor <- 99515.5458411807
+#DAPI
+raw.counts.SH$DAPI_conc <- (raw.counts.SH$DAPI_Nr_Set*calc.factor)/raw.counts.SH$Volume
+#FISH
+raw.counts.SH$FISH_conc <- (raw.counts.SH$DAPI_Nr_SubSet*calc.factor)/raw.counts.SH$Volume
+
+#calculate DAPI concetration per sample
+raw.counts.SH %>% 
+  group_by(StationName, Depth, Domain) %>% 
+  summarise (DAPI.conc.mn = mean(DAPI_conc),
+             DAPI.conc.md =  median(DAPI_conc), 
+             DAPI.conc.sd = sd(DAPI_conc),
+             FISH.conc.mn = mean(FISH_conc),
+             FISH.conc.md =  median(FISH_conc), 
+             FISH.conc.sd = sd(FISH_conc),
+             n = length(DAPI_conc)) -> counts_all
 
 # 
 # counts_DAPI <- as.data.frame(as.list((aggregate(DAPI_Nr_Set~SAMPLE_NAME, 
@@ -97,18 +107,7 @@ counts_DAPI <- subset(counts_DAPI, !StationName == "SV2")
 
 
 ###FISH
-#cell concentration for FISH
-raw.counts.SH$FISH_conc <- (raw.counts.SH$DAPI_Nr_SubSet*calc.factor)/raw.counts.SH$Volume
 
-counts_FISH <- as.data.frame(as.list((aggregate(FISH_conc~SAMPLE_NAME, 
-                                                data=raw.counts.SH, 
-                                                FUN = function(x) c(conc.mn = mean(x), conc.md =  median(x), conc.sd = sd(x), n = length(x))))))
-#split sample name
-counts_FISH <- counts_FISH %>% 
-  separate(SAMPLE_NAME, c("StationName", "Depth", "Domain"),"-")
-
-#remove SV2 station
-counts_FISH <- subset(counts_FISH, !StationName == "SV2")
 
 
 # counts_FISH <- as.data.frame(as.list(aggregate(DAPI_Nr_SubSet ~SAMPLE_NAME, data=raw.counts.SH,
@@ -131,24 +130,24 @@ counts_FISH <- subset(counts_FISH, !StationName == "SV2")
 ## call water layers and add regions and water masses
 ##################################
 #Regions as in ice covered:EGC ice-free:WSC (Fadeev et al., 2019)
-EGC <- c("EG1","EG4","N3","N4","N5")
+EGC <- c("EG1","EG4")
+N <- c("N3","N4","N5")
 WSC <- c("HG9","HG7","HG5","HG4","HG2","HG1")
 
 #water masses
 PSWw <- c("EG1","EG4", "HG4", "HG5", "HG7", "HG9", "N3", "N4", "N5")
 AW <- c("HG2","HG1", "SV2")
 
-counts_DAPI$Region[counts_DAPI$StationName %in% EGC] <- "EGC"
-counts_DAPI$Region[counts_DAPI$StationName %in% WSC] <- "WSC"
+counts_all$Region <- "EGC"
+counts_all$Region[counts_all$StationName %in% N] <- "N"
+counts_all$Region[counts_all$StationName %in% WSC] <- "WSC"
 
-counts_FISH$Region[counts_FISH$StationName %in% EGC] <- "EGC"
-counts_FISH$Region[counts_FISH$StationName %in% WSC] <- "WSC" 
 
 #add the longitude of each station from the metadata
 for (station in metadata$StationName){
-  counts_DAPI$long[counts_DAPI$StationName == station] <- metadata[metadata$StationName == station,]$Longitude..degrees_east.
-  counts_FISH$long[counts_FISH$StationName == station] <- metadata[metadata$StationName == station,]$Longitude..degrees_east.
-  }
+  counts_all$long <- NA
+  counts_all$long[counts_all$StationName == station] <- metadata[metadata$StationName == station,]$Longitude..degrees_east.
+    }
 
 # counts_FISH$long[counts_FISH$StationName == "EG1"] <- -5.418
 # counts_FISH$long[counts_FISH$StationName == "EG4"] <- -2.729

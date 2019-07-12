@@ -181,6 +181,55 @@ surface_FISH_proportion%>%
 
 
 ##################################
+# NMDS plot
+##################################
+#list all taxa (excluding EUB and ARCH)
+taxa <- c("ALT", "BACT", "CFX", "CREN", "DELTA", "GAM", "OPI", "POL", "ROS", "SAR11", "SAR202","SAR324", "SAR406", "VER")
+
+#generate wide abundance table 
+surface_FISH_proportion %>% 
+  select(Region, StationName, Domain, FISH.conc.mn) %>%
+  group_by(Region, StationName) %>%
+  filter(Domain %in% taxa) %>% 
+  spread(Domain, FISH.conc.mn) -> surface_FISH_wide
+
+#Calculate distances and generate NMDS
+all_metaMDS <- metaMDS(surface_FISH_wide[,taxa], maxit= 100, trace=TRUE)
+
+data.scores <- as.data.frame(scores(all_metaMDS))  #Using the scores function from vegan to extract the site scores and convert to a data.frame
+data.scores$site <- surface_FISH_wide$StationName  # create a column of site names, from the rownames of data.scores
+data.scores$Region <- surface_FISH_wide$Region
+
+species.scores <- as.data.frame(scores(all_metaMDS, "species"))  #Using the scores function from vegan to extract the species scores and convert to a data.frame
+species.scores$species <- rownames(species.scores)  # create a column of species, from the rownames of species.scores
+
+#Plot NMDS
+NMDS_surface <- ggplot() + 
+  geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.5) +  # add the species labels
+  geom_point(data=data.scores,aes(x=NMDS1,y=NMDS2, colour = Region),size=5) + # add the point markers
+  geom_text(data=data.scores,aes(x=NMDS1,y=NMDS2,label=site),size=3,nudge_y =-0.03) +  # add the site labels
+  scale_colour_manual(values=c("WSC" = "red", "N" = "black", "EGC" = "blue")) +
+  annotate(geom="text", x=-0.20, y=0.25, label= paste("Stress =", round(all_metaMDS$stress, 3), sep = " "),color="black")+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),legend.position = "bottom")
+
+#save the figure
+ggsave("./figures/Figure-NMDS.png", 
+       plot = NMDS_surface,
+       scale = 1,
+       units = "cm",
+       #width = 17.8,
+       #height = 17.4,
+       dpi = 300)
+
+
+
+
+
+
+
+
+##################################
 # Env. parameter coorelation test 
 ##################################
 ## import environmental metadata 

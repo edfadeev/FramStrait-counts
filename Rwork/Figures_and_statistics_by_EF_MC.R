@@ -1,0 +1,425 @@
+#####################################
+## set working directory and load preprocessed dataset
+#####################################
+#set working directory in iOS
+setwd("~/CARD-FISH/CARD-FISH_water_project/")
+
+###################################
+## Load required libraries
+###################################
+library(ggplot2)#; packageVersion("ggplot2")
+library(dplyr)#; packageVersion("dplyr")
+library(ggsignif)#; packageVersion("ggsignif")
+library(cowplot)#; packageVersion("cowplot")
+library("PerformanceAnalytics")#; packageVersion("PerformanceAnalytics")
+library(tidyr)
+library(vegan)
+library(corrplot)
+library(RColorBrewer)
+
+
+###################################
+## defined functions
+###################################
+#calculate standard error
+se <- function(x, na.rm=FALSE) {
+  if (na.rm) x <- na.omit(x)
+  sqrt(var(x)/length(x))
+}
+
+#scale parameters
+scale_par <- function(x) scale(x, center = FALSE, scale = TRUE)[,1]
+
+###################################
+## Import counts and calculate cell concentrations
+###################################
+#raw counts
+raw.counts.SH <- read.csv("FOV_all_groups_SH.csv", sep = ",", dec = ".", header = TRUE)
+
+#split sample name
+raw.counts.SH <- raw.counts.SH %>% 
+  separate(SAMPLE_NAME, c("StationName", "Depth", "Domain"),"-")
+
+#remove SV2 station and ABYSS depth
+raw.counts.SH <- subset(raw.counts.SH, !StationName == "SV2")
+raw.counts.SH <- subset(raw.counts.SH, !Depth == "ABYSS")
+
+###calculate cell concentration for each field of view
+#microscope calculation factor
+calc.factor <- 99515.5458411807
+#DAPI
+raw.counts.SH$DAPI_conc <- (raw.counts.SH$DAPI_Nr_Set*calc.factor)/raw.counts.SH$Volume
+#FISH
+raw.counts.SH$FISH_conc <- (raw.counts.SH$DAPI_Nr_SubSet*calc.factor)/raw.counts.SH$Volume
+
+#calculate DAPI concetration per sample
+raw.counts.SH %>% 
+  group_by(StationName, Depth, Domain) %>% 
+  summarise (DAPI.conc.mn = mean(DAPI_conc),
+             DAPI.conc.md =  median(DAPI_conc), 
+             DAPI.conc.sd = sd(DAPI_conc),
+             FISH.conc.mn = mean(FISH_conc),
+             FISH.conc.md =  median(FISH_conc), 
+             FISH.conc.sd = sd(FISH_conc),
+             n = length(DAPI_conc)) -> counts_all
+
+
+#Define regions by stations
+EGC <- c("EG1","EG4")
+N <- c("N3","N4","N5")
+WSC <- c("HG9","HG7","HG5","HG4","HG2","HG1")
+
+counts_all$Region <- "EGC"
+counts_all$Region[counts_all$StationName %in% N] <- "N"
+counts_all$Region[counts_all$StationName %in% WSC] <- "WSC"
+
+###################################
+##Check the coverage of EUB and ARCH probes in comparison to DAPI
+###################################
+#Coverage of EUB and ARCH per depth and station
+counts_all%>% 
+  filter(Domain %in% c("EUB","ARCH"))%>%
+  group_by(Region, StationName, Depth, Domain) %>% 
+  summarise(proportion = FISH.conc.mn/DAPI.conc.mn)-> EUB_ARCH_prop
+
+#Total coverage (of EUB and ARCH sum) per depth and station
+EUB_ARCH_prop%>%
+  group_by(Region, StationName, Depth) %>% 
+  summarise(total.coverage = sum(proportion)) -> EUB_ARCH_coverage
+#!!!need to figure out how to calculate the SD here !#
+
+#Coverage by regions and depth
+EUB_ARCH_coverage %>%
+  group_by(Region, Depth) %>% 
+  summarise(mean.coverage = mean(total.coverage),
+            sd.coverage = se(total.coverage)) -> EUB_ARCH_coverage_by_region
+
+#Significance coverage test between the regions
+wilcox.test(EUB_ARCH_coverage[EUB_ARCH_coverage$Region == "WSC",]$total.coverage,
+            EUB_ARCH_coverage[EUB_ARCH_coverage$Region == "N",]$total.coverage)
+# Wilcoxon rank sum test
+# 
+# data:  EUB_ARCH_coverage[EUB_ARCH_coverage$Region == "WSC", ]$total.coverage and EUB_ARCH_coverage[EUB_ARCH_coverage$Region == "N", ]$total.coverage
+# W = 119, p-value = 0.4164
+# alternative hypothesis: true location shift is not equal to 0
+
+wilcox.test(EUB_ARCH_coverage[EUB_ARCH_coverage$Region == "WSC",]$total.coverage,
+            EUB_ARCH_coverage[EUB_ARCH_coverage$Region == "EGC",]$total.coverage)
+
+# Wilcoxon rank sum test
+# 
+# data:  EUB_ARCH_coverage[EUB_ARCH_coverage$Region == "WSC", ]$total.coverage and EUB_ARCH_coverage[EUB_ARCH_coverage$Region == "EGC", ]$total.coverage
+# W = 49, p-value = 0.1041
+# alternative hypothesis: true location shift is not equal to 0
+
+wilcox.test(EUB_ARCH_coverage[EUB_ARCH_coverage$Region == "N",]$total.coverage,
+            EUB_ARCH_coverage[EUB_ARCH_coverage$Region == "EGC",]$total.coverage)
+
+# Wilcoxon rank sum test
+# 
+# data:  EUB_ARCH_coverage[EUB_ARCH_coverage$Region == "N", ]$total.coverage and EUB_ARCH_coverage[EUB_ARCH_coverage$Region == "EGC", ]$total.coverage
+# W = 24, p-value = 0.1422
+
+#Coverage by depth only, takes the mean of the regions
+EUB_ARCH_coverage %>%
+  group_by(Depth) %>% 
+  summarise(mean.coverage = mean(total.coverage),
+            sd.coverage = se(total.coverage)) -> EUB_ARCH_coverage_by_depth
+
+
+###################################
+##significance of DAPI  with depth
+###################################
+counts_all%>% 
+  group_by(Region, StationName, Depth) %>% 
+  summarise(mean.DAPI = mean(DAPI.conc.mn),
+            sd.dapi =se(DAPI.conc.mn))-> DAPI_sum
+
+wilcox.test(DAPI_sum[DAPI_sum$Depth == "DCM",]$mean.DAPI,
+            DAPI_sum[DAPI_sum$Depth == "EPI",]$mean.DAPI)
+
+# Wilcoxon rank sum test
+# 
+# data:  DAPI_sum[DAPI_sum$Depth == "DCM", ]$mean.DAPI and DAPI_sum[DAPI_sum$Depth == "EPI", ]$mean.DAPI
+# W = 93, p-value = 0.0336
+# alternative hypothesis: true location shift is not equal to 0
+
+wilcox.test(DAPI_sum[DAPI_sum$Depth == "EPI",]$mean.DAPI,
+            DAPI_sum[DAPI_sum$Depth == "MESO",]$mean.DAPI)
+
+# Wilcoxon rank sum test
+# 
+# data:  DAPI_sum[DAPI_sum$Depth == "EPI", ]$mean.DAPI and DAPI_sum[DAPI_sum$Depth == "MESO", ]$mean.DAPI
+# W = 121, p-value = 2.835e-06
+# alternative hypothesis: true location shift is not equal to 0
+
+wilcox.test(DAPI_sum[DAPI_sum$Depth == "MESO",]$mean.DAPI,
+            DAPI_sum[DAPI_sum$Depth == "BATHY",]$mean.DAPI)
+
+# Wilcoxon rank sum test
+# 
+# data:  DAPI_sum[DAPI_sum$Depth == "MESO", ]$mean.DAPI and DAPI_sum[DAPI_sum$Depth == "BATHY", ]$mean.DAPI
+# W = 90, p-value = 0.01272
+# alternative hypothesis: true location shift is not equal to 0
+
+DAPI_sum %>% 
+  group_by(Region, Depth) %>% 
+  summarise(mean = mean(mean.DAPI),
+            sd.dapi =se(mean.DAPI))-> DAPI_sum_region
+###################################
+##significance of Bacteria with depth
+###################################
+counts_all%>% 
+  filter(Domain %in% c("EUB"))%>%
+  group_by(Region, StationName, Depth) %>% 
+  summarise(mean.FISH = mean(FISH.conc.mn),
+            sd.FISH =se(FISH.conc.mn))-> EUB_sum
+
+wilcox.test(EUB_sum[EUB_sum$Depth == "DCM",]$mean.FISH,
+            EUB_sum[EUB_sum$Depth == "EPI",]$mean.FISH)
+
+# Wilcoxon rank sum test
+# 
+# data:  EUB_sum[EUB_sum$Depth == "DCM", ]$mean.FISH and EUB_sum[EUB_sum$Depth == "EPI", ]$mean.FISH
+# W = 105, p-value = 0.002447
+# alternative hypothesis: true location shift is not equal to 0
+
+wilcox.test(EUB_sum[EUB_sum$Depth == "EPI",]$mean.FISH,
+            EUB_sum[EUB_sum$Depth == "MESO",]$mean.FISH)
+
+# Wilcoxon rank sum test
+# 
+# data:  EUB_sum[EUB_sum$Depth == "EPI", ]$mean.FISH and EUB_sum[EUB_sum$Depth == "MESO", ]$mean.FISH
+# W = 121, p-value = 2.835e-06
+# alternative hypothesis: true location shift is not equal to 0
+
+wilcox.test(EUB_sum[EUB_sum$Depth == "MESO",]$mean.FISH,
+            EUB_sum[EUB_sum$Depth == "BATHY",]$mean.FISH)
+
+# Wilcoxon rank sum test
+# 
+# data:  EUB_sum[EUB_sum$Depth == "MESO", ]$mean.FISH and EUB_sum[EUB_sum$Depth == "BATHY", ]$mean.FISH
+# W = 90, p-value = 0.01272
+# alternative hypothesis: true location shift is not equal to 0
+###################################
+##Plot EUB and ARCH profiles by region
+###################################
+counts_all%>% 
+  filter(Domain %in% c("EUB","ARCH"))%>%
+  group_by(Region, StationName, Depth, Domain) -> EUB_ARCH_absolute
+EUB_ARCH_absolute$Depth <- factor(EUB_ARCH_absolute$Depth, levels = c("DCM","EPI","MESO","BATHY"))
+counts_all$Depth <- factor(EUB_ARCH_absolute$Depth, levels = c("DCM","EPI","MESO","BATHY"))
+depths.labs <- c("Surface", "Epipelagic", "Mesopelagic", "Bathypelagic")
+names(depths.labs) <- c("DCM", "EPI", "MESO", "BATHY")
+domain.labs <- c("Archaea", "Bacteria")
+names(domain.labs) <- c("ARCH", "EUB")
+EUB_ARCH_absolute$FISH.conc.mn <- log10(EUB_ARCH_absolute$FISH.conc.mn)
+EUB_ARCH_vertical_boxplot <- ggplot(EUB_ARCH_absolute, aes(x= Region, y = FISH.conc.mn))+
+  geom_boxplot(aes(fill = Region))+
+  facet_grid(Domain~Depth, labeller = labeller(Depth = depths.labs, Domain = domain.labs))+
+  geom_jitter(aes(x= Region, y = FISH.conc.mn),width = 0.2, alpha = 0.3)+
+  #geom_signif(comparisons = list(c("EGC", "WSC"),c("EGC","N"),c("N","WSC")), 
+  #            map_signif_level=TRUE, test = "wilcox.test")+
+  #scale_y_continuous(trans = 'log10')+
+  labs(y = "Cell density [log10(Cells/mL)]")+#coord_cartesian(ylim = c(1e+03, 1e+06))+
+  labs(x = "")+
+  scale_fill_manual(values=c("WSC" = "red", "EGC" = "blue", "N" = "gray")) +
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),legend.position = "bottom")
+EUB_ARCH_vertical_boxplot
+
+DAPI_absolute <- counts_all[, c("DAPI.conc.mn","Region", "Depth")]
+DAPI_absolute$DAPI.conc.mn <- log10(DAPI_absolute$DAPI.conc.mn)
+DAPI_vertical_boxplot <- ggplot(DAPI_absolute, aes(Region, DAPI.conc.mn))+
+  scale_fill_manual(values=c("WSC" = "red", "EGC" = "blue", "N" = "gray"))+
+  geom_boxplot(aes(fill = Region))+facet_grid(~Depth, labeller = labeller(Depth = depths.labs))+
+  geom_jitter(aes(x= Region, y = DAPI.conc.mn),width = 0.2, alpha = 0.3)+
+  labs(y = "Cell density [log10(Cells/mL)]")+coord_cartesian(ylim = c(3, 7))+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),legend.position = "bottom")
+DAPI_vertical_boxplot 
+
+Figure2 <- plot_grid(EUB_ARCH_vertical_boxplot, DAPI_vertical_boxplot, labels = c("A","B"), nrow = 2)
+
+
+#save the figure
+ggsave("./Figure-2AB.png", 
+       plot = Figure2,
+       scale = 1,
+       units = "cm",
+       width = 17.8,
+       height = 25,
+       dpi = 300)
+
+###################################
+# Overview of phylogenetic group abundances by regions
+###################################
+#calculate abundance in surface by region
+counts_all%>% 
+  filter(Depth == "DCM")%>%
+  group_by(Region, Domain) %>%
+  summarise(mean.abund = mean(FISH.conc.mn),
+            se.abund = se(FISH.conc.mn),
+            n= length(FISH.conc.mn))-> FISH_abundance_surface_by_region
+
+#make wide table
+FISH_abundance_surface_by_region %>%
+  select(Region,Domain,mean.abund)%>%
+  spread(Region,mean.abund) -> FISH_abundance_surface_by_region_wide
+
+#calculate abundances by region
+counts_all%>% 
+  group_by(Region, Domain, Depth) %>%
+  summarise(mean.abund = mean(FISH.conc.mn),
+            se.abund = se(FISH.conc.mn),
+            n= length(FISH.conc.mn))-> FISH_abundances_by_region
+FISH_abundances_by_region$Depth <- factor(FISH_abundances_by_region$Depth, levels = c("DCM","EPI","MESO","BATHY"))
+FISH_abundances_by_region %>%
+  select(Region,Domain,Depth,mean.abund)%>%
+  spread(Domain,mean.abund) -> FISH_abundance_by_region_wide
+#write.csv(FISH_abundance_by_region_wide, file="~/CARD-FISH/CARD-FISH_water_project/cell_densities.csv")
+
+#calculate proportional abundance of the different groups at the surface
+counts_all%>% 
+  filter(Depth %in% c("DCM"))%>%
+  #left_join(.,total_abundance_surface_by_station[,c("StationName","total.abund")], by = "StationName") %>%
+  group_by(Region, Depth, StationName, Domain)%>%
+  mutate(proportion = (FISH.conc.mn / DAPI.conc.mn)*100) %>%
+  select(Region, StationName, Domain, FISH.conc.mn, proportion)  -> surface_FISH_proportion
+
+#summarize by regions
+surface_FISH_proportion%>%
+  group_by(Region, Domain) %>% 
+  summarise (mean.abund = mean(FISH.conc.mn),
+             se.abund = se(FISH.conc.mn), 
+             mean.prop = mean(proportion),
+             se.prop = se(proportion)) -> surface_FISH_proportion_by_regions
+
+#calculate proportional abundance of the different groups
+counts_all%>% 
+  group_by(Region, StationName, Domain)%>%
+  mutate(proportion = (FISH.conc.mn / DAPI.conc.mn)*100) %>%
+  group_by(Region, Domain, Depth) %>%
+  summarise(mean.prop = mean(proportion),
+            se.prop = se(proportion))%>%
+  select(Region, Domain, mean.prop, Depth) %>%
+  spread(Domain,mean.prop) ->  FISH_proportion
+
+##################################
+# NMDS plot
+##################################
+#list all taxa (excluding EUB and ARCH)
+taxa.nmds <- c("ALT", "BACT", "CFX", "CREN", "DELTA", "GAM", "OPI", "POL", "ROS", "SAR11", "SAR202","SAR324", "SAR406", "VER")
+
+#generate wide abundance table 
+surface_FISH_proportion %>% 
+  select(Region, StationName, Domain, FISH.conc.mn) %>%
+  group_by(Region, StationName) %>%
+  filter(Domain %in% taxa.nmds) %>% 
+  spread(Domain, FISH.conc.mn) -> surface_FISH_wide
+
+#Calculate distances and generate NMDS
+all_metaMDS <- metaMDS(surface_FISH_wide[,taxa.nmds], maxit= 100, trace=TRUE)
+
+data.scores <- as.data.frame(scores(all_metaMDS))  #Using the scores function from vegan to extract the site scores and convert to a data.frame
+data.scores$site <- surface_FISH_wide$StationName  # create a column of site names, from the rownames of data.scores
+data.scores$Region <- surface_FISH_wide$Region
+
+species.scores <- as.data.frame(scores(all_metaMDS, "species"))  #Using the scores function from vegan to extract the species scores and convert to a data.frame
+species.scores$species <- rownames(species.scores)  # create a column of species, from the rownames of species.scores
+
+#Plot NMDS
+NMDS_surface <- ggplot() + 
+  geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species),alpha=0.5) +  # add the species labels
+  geom_point(data=data.scores,aes(x=NMDS1,y=NMDS2, colour = Region),size=5) + # add the point markers
+  geom_text(data=data.scores,aes(x=NMDS1,y=NMDS2,label=site),size=3,nudge_y =-0.03) +  # add the site labels
+  scale_colour_manual(values=c("WSC" = "red", "N" = "black", "EGC" = "blue")) +
+  annotate(geom="text", x=-0.20, y=0.25, label= paste("Stress =", round(all_metaMDS$stress, 3), sep = " "),color="black")+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),legend.position = "bottom")
+NMDS_surface
+
+#save the figure
+ggsave("./figures/Figure-NMDS.png", 
+       plot = NMDS_surface,
+       scale = 1,
+       units = "cm",
+       #width = 17.8,
+       #height = 17.4,
+       dpi = 300)
+
+##################################
+# Env. parameter coorelation test 
+##################################
+## import environmental metadata 
+metadata <- read.csv("PS99_samples_meta_EF_MC_nutrient_corrected.csv", sep = ",", dec = ".", header = TRUE)
+
+#remove station SV2 from the dataset
+metadata <- subset(metadata, !StationName == "SV2")
+
+#list environmental parameters that need to be scaled
+env.par <- c("Temperature","Salinity", 
+             "Chla_fluor", "d.NO3.NO2.", "d.NO3.", "d.NO2.", "d.NH4.", "d.PO4.", "d.SiO3.")
+
+#drop rows with NA and scale the env. parameters 
+metadata %>% 
+  drop_na() %>% 
+  mutate_at(env.par, scale_par) -> env
+
+#Calculate the Pearson’s correlation coefficient in a matrix
+chart.Correlation(env[,env.par], histogram=TRUE, pch=19)
+cor.env <- cor(env[,env.par])
+corrplot(cor.env, type="upper", order="hclust", col=brewer.pal(n=8, name="PuOr"), method="pie", addCoef.col = "black",srt = 45, number.cex= 0.75)
+
+##################################
+# correlation between env. par. and absolute counts
+##################################
+
+taxa.sp <- c("CREN","ARCH", "DELTA", "POL","SAR202","SAR324","SAR406","EUB","BACT","CFX","GAM","OPI","ROS","SAR11", "VER","ALT")
+#select only surface samples
+env %>%
+  filter (Depth == "DCM") -> env.SRF
+
+#env.SRF <- env.SRF[,c("StationName", "Depth", "Temperature", "Salinity", "Chla_fluor", "d.NO3.NO2.", "d.NO3.", "d.NO2.","d.SiO3.", "d.PO4.", "d.NH4.")]
+
+#generate wide abundance table 
+counts_all%>% 
+  filter(Depth == "DCM")%>%
+  group_by(Region, Domain, StationName) %>%
+  summarise(mean.abund = mean(FISH.conc.mn),
+            se.abund = se(FISH.conc.mn),
+            n= length(FISH.conc.mn)) -> counts_for_cor
+counts_for_cor$Domain <- factor(counts_for_cor$Domain, levels = c("CREN","ARCH", "DELTA", "POL","SAR202","SAR324","SAR406","EUB","BACT","CFX","GAM","OPI","ROS","SAR11", "VER","ALT"))
+counts_for_cor%>%
+  spread(Domain, mean.abund) -> surface_FISH_abundances_wide  
+
+#drop samples with no env. data
+surface_FISH_abundances_wide %>%
+  filter(StationName %in% env.SRF$StationName) -> surface_FISH_counts
+
+#calculate pearson correlation between each taxa and env. parameters.
+cor.env.counts <- cor(env.SRF[,env.par], surface_FISH_counts[,taxa.sp], method = "spearman")
+table.spearman <- as.data.frame(cor.env.counts)
+table.spearman
+write.csv(table.spearman, file="~/CARD-FISH/CARD-FISH_water_project/spearman_table.abs.csv")
+
+##################################
+# correlation between env. par. and relative counts 
+##################################
+surface_FISH_proportion$Domain <- factor(surface_FISH_proportion$Domain, levels = c("CREN","ARCH", "DELTA", "POL","SAR202","SAR324","SAR406","EUB","BACT","CFX","GAM","OPI","ROS","SAR11", "VER","ALT"))
+surface_FISH_proportion%>% 
+  filter(Depth == "DCM")%>%
+  select(Depth, Region, StationName, Domain, proportion) %>%
+  spread(Domain, proportion) -> surface_FISH_proportion_wide
+
+#drop samples with no env. data
+surface_FISH_proportion_wide %>%
+  filter(StationName %in% env.SRF$StationName) -> surface_FISH_prop
+
+
+#calculate spearmancorrelation with relative adundances
+cor.env.counts.rel <- cor(env.SRF[,env.par], surface_FISH_prop[,taxa.sp], method = "spearman")
+table.spearman.rel <- as.data.frame(cor.env.counts.rel)
+write.csv(table.spearman.rel, file="~/CARD-FISH/CARD-FISH_water_project/spearman_table_rel.csv")
+
+

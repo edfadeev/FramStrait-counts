@@ -8,6 +8,7 @@ setwd("~/CARD-FISH/CARD-FISH_water_project/")
 ## Load required libraries
 ###################################
 library(ggplot2)#; packageVersion("ggplot2")
+
 library(dplyr)#; packageVersion("dplyr")
 library(ggsignif)#; packageVersion("ggsignif")
 library(cowplot)#; packageVersion("cowplot")
@@ -34,7 +35,7 @@ scale_par <- function(x) scale(x, center = FALSE, scale = TRUE)[,1]
 ## Import counts and calculate cell concentrations
 ###################################
 #raw counts
-raw.counts.SH <- read.csv("FOV_all_groups_SH.csv", sep = ",", dec = ".", header = TRUE)
+raw.counts.SH <- read.csv("Rwork/FOV_all_groups_SH.csv", sep = ",", dec = ".", header = TRUE)
 
 #split sample name
 raw.counts.SH <- raw.counts.SH %>% 
@@ -352,7 +353,7 @@ ggsave("./figures/Figure-NMDS.png",
 # Env. parameter coorelation test 
 ##################################
 ## import environmental metadata 
-metadata <- read.csv("PS99_samples_meta_EF_MC_nutrient_corrected.csv", sep = ",", dec = ".", header = TRUE)
+metadata <- read.csv("./Rwork/PS99_samples_meta_EF_MC_nutrient_corrected.csv", sep = ",", dec = ".", header = TRUE)
 
 #remove station SV2 from the dataset
 metadata <- subset(metadata, !StationName == "SV2")
@@ -389,13 +390,17 @@ counts_all%>%
   summarise(mean.abund = mean(FISH.conc.mn),
             se.abund = se(FISH.conc.mn),
             n= length(FISH.conc.mn)) -> counts_for_cor
+
 counts_for_cor$Domain <- factor(counts_for_cor$Domain, levels = c("CREN","ARCH", "DELTA", "POL","SAR202","SAR324","SAR406","EUB","BACT","CFX","GAM","OPI","ROS","SAR11", "VER","ALT"))
-counts_for_cor%>%
+
+#counts_for_cor%>%
+  select(counts_for_cor,
+         Domain, StationName, mean.abund)%>%
   spread(Domain, mean.abund) -> surface_FISH_abundances_wide  
 
 #drop samples with no env. data
 surface_FISH_abundances_wide %>%
-  filter(StationName %in% env.SRF$StationName) -> surface_FISH_counts
+  filter(StationName %in% as.vector(env.SRF$StationName)) -> surface_FISH_counts
 
 #calculate pearson correlation between each taxa and env. parameters.
 cor.env.counts <- cor(env.SRF[,env.par], surface_FISH_counts[,taxa.sp], method = "spearman")

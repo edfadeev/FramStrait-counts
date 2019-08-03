@@ -386,16 +386,15 @@ env %>%
 #generate wide abundance table 
 counts_all%>% 
   filter(Depth == "DCM")%>%
-  group_by(Region, Domain, StationName) %>%
+  group_by(StationName, Domain) %>%
   summarise(mean.abund = mean(FISH.conc.mn),
             se.abund = se(FISH.conc.mn),
             n= length(FISH.conc.mn)) -> counts_for_cor
 
 counts_for_cor$Domain <- factor(counts_for_cor$Domain, levels = c("CREN","ARCH", "DELTA", "POL","SAR202","SAR324","SAR406","EUB","BACT","CFX","GAM","OPI","ROS","SAR11", "VER","ALT"))
 
-#counts_for_cor%>%
-  select(counts_for_cor,
-         Domain, StationName, mean.abund)%>%
+
+select(counts_for_cor, c(Domain, StationName, mean.abund))%>%
   spread(Domain, mean.abund) -> surface_FISH_abundances_wide  
 
 #drop samples with no env. data
@@ -404,9 +403,46 @@ surface_FISH_abundances_wide %>%
 
 #calculate pearson correlation between each taxa and env. parameters.
 cor.env.counts <- cor(env.SRF[,env.par], surface_FISH_counts[,taxa.sp], method = "spearman")
-table.spearman <- as.data.frame(cor.env.counts)
-table.spearman
-write.csv(table.spearman, file="~/CARD-FISH/CARD-FISH_water_project/spearman_table.abs.csv")
+table.spearman <- t(as.data.frame(cor.env.counts))
+
+
+
+#multiple correlation tests with significance p-values
+#install the packages if necessary
+if(!require("tidyverse")) install.packages("tidyverse")
+if(!require("broom")) install.packages("broom")
+if(!require("fs")) install.packages("fs")
+if(!require("lubridate")) install.packages("lubridate")
+
+#load packages
+library(tidyverse)
+library(broom)
+library(fs)
+library(lubridate)
+
+
+#merge counts and environmental data
+data_all <- left_join(surface_FISH_abundances_wide, env.SRF[,c("StationName",env.par)] , by = "StationName")
+
+#generate long table
+data <- gather(data_all, Domain, Abund, taxa.sp)%>%
+  gather(variable, value, env.par)
+
+#nest the table according to taxa and env. variable
+data_nest <- group_by(data, Domain, variable) %>% nest()
+data_nest
+
+#define function for correlation 
+cor_fun <- function(df) cor.test(df$Abund, df$value, method = "spearman") %>% tidy()
+
+#nested correlations tests
+data_nest <- mutate(data_nest, model = map(data, cor_fun))
+data_nest
+
+#summary table
+corr_pr <- select(data_nest, -data) %>% unnest()
+corr_pr
+
 
 ##################################
 # correlation between env. par. and relative counts 

@@ -210,13 +210,14 @@ wilcox.test(EUB_sum[EUB_sum$Depth == "MESO",]$mean.FISH,
 ##significance of Groups between the regions 
 ###################################
 counts_all%>% 
-  filter(Domain %in% c("POL"))%>% # here change domain to see differences
+  filter(Domain %in% c("SAR406"))%>%
+  filter(Depth %in% c("DCM"))%>%# here change domain to see differences
   group_by(Region, StationName, Depth) %>% 
   summarise(mean.FISH = mean(FISH.conc.mn),
-            sd.FISH =se(FISH.conc.mn))-> GAM_sum
+            sd.FISH =se(FISH.conc.mn))-> EUB_sum
 
-wilcox.test(GAM_sum[GAM_sum$Region == "EGC",]$mean.FISH,
-            GAM_sum[GAM_sum$Region == "N",]$mean.FISH)
+wilcox.test(EUB_sum[EUB_sum$Region == "EGC",]$mean.FISH,
+            EUB_sum[EUB_sum$Region == "N",]$mean.FISH)
 
 # Wilcoxon rank sum test
 # 
@@ -224,8 +225,8 @@ wilcox.test(GAM_sum[GAM_sum$Region == "EGC",]$mean.FISH,
 # W = 37, p-value = 0.7108
 # alternative hypothesis: true location shift is not equal to 0
 
-wilcox.test(GAM_sum[GAM_sum$Region == "EGC",]$mean.FISH,
-            GAM_sum[GAM_sum$Region == "WSC",]$mean.FISH)
+wilcox.test(EUB_sum[EUB_sum$Region == "EGC",]$mean.FISH,
+            EUB_sum[EUB_sum$Region == "WSC",]$mean.FISH)
 
 # Wilcoxon rank sum test
 # 
@@ -519,7 +520,7 @@ FISH_abundances_by_region$log <- log10(FISH_abundances_by_region$mean.abund)
 FISH_abundances_by_region <- subset(FISH_abundances_by_region, Domain != "EUB") 
 FISH_abundances_by_region <- subset(FISH_abundances_by_region, Domain != "ARCH") 
 FISH_abundances_by_region$Domain <- factor(FISH_abundances_by_region$Domain, levels =c("GAM", "ALT", "BACT", "POL", "ROS", "SAR11", "DELTA", "SAR324", "CFX", "SAR202", "VER", "OPI", "SAR406", "CREN"))
-domain.depth.labs <- c( "Gammaproteobacteria", "Alteromonadaceae Colwelliaceae Pseudoalteromonadaceae", "Bacteroidia", "Polaribacter", "Rhodobacteraceae", "SAR11", "Deltaproteobacteria", "SAR324", "Chloroflexi", "SAR202", "Verrucomicrobia", "Opitutale", "SAR406", "Thaumarcheota")
+domain.depth.labs <- c( "Gammaproteobacteria", "Alteromonadaceae Colwelliaceae Pseudoalteromonadaceae", "Bacteroidia", "Polaribacter", "Rhodobacteraceae", "SAR11", "Deltaproteobacteria", "SAR324", "Chloroflexi", "SAR202", "Verrucomicrobia", "Opitutales", "SAR406 Marinimicrobia", "Thaumarchaeota")
 names(domain.depth.labs) <- c("GAM", "ALT", "BACT", "POL", "ROS", "SAR11", "DELTA", "SAR324", "CFX", "SAR202", "VER", "OPI", "SAR406", "CREN")
 
 
@@ -529,7 +530,7 @@ Depth_profiles_abs_abundance.p <- ggplot(FISH_abundances_by_region, aes(y = log,
   facet_wrap(.~Domain, labeller = labeller(Domain = domain.depth.labs))+
   labs(y = "Cell abundance [log10(Cells/mL)]", x = "Depth zone")+
   scale_x_discrete(labels=c("DCM" = "Surface", "EPI" = "Epipelagic","MESO" = "Mesopelagic", "BATHY" = "Bathypelagic", "ABYSS" = "Abyssopelagic"))+
-  scale_color_manual(breaks = c("EGC", "N", "WSC"), values = c("blue", "grey", "red"))+
+  scale_color_manual(breaks = c("EGC", "N", "WSC"), values = c("blue", "black", "red"))+
   theme_bw()+
   theme(strip.background =element_rect(fill="white"))+
   theme(strip.text = element_text(face = "italic"))+theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())

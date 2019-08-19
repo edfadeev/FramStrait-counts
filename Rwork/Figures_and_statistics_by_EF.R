@@ -1,13 +1,3 @@
-#####################################
-## set working directory and load preprocessed dataset
-#####################################
-#set working directory in iOS
-#setwd("~/CARD-FISH/CARD-FISH_water_project/")
-
-#set working directory in windows
-wd <- dirname(rstudioapi::getActiveDocumentContext()$path)
-setwd(wd)
-
 ###################################
 ## Load required libraries
 ###################################
@@ -15,6 +5,7 @@ library(ggplot2); packageVersion("ggplot2")
 library(dplyr); packageVersion("dplyr")
 library(ggsignif); packageVersion("ggsignif")
 library(cowplot); packageVersion("cowplot")
+library(tidyr); packageVersion("tidyr")
 library("PerformanceAnalytics"); packageVersion("PerformanceAnalytics")
 
 ###################################
@@ -33,7 +24,7 @@ scale_par <- function(x) scale(x, center = FALSE, scale = TRUE)[,1]
 ## Import counts and calculate cell concentrations
 ###################################
 #raw counts
-raw.counts.SH <- read.csv("FOV_all_groups_SH.csv", sep = ",", dec = ".", header = TRUE)
+raw.counts.SH <- read.csv("./Rwork/FOV_all_groups_SH.csv", sep = ",", dec = ".", header = TRUE)
 
 #split sample name
 raw.counts.SH <- raw.counts.SH %>% 
@@ -114,20 +105,41 @@ counts_all%>%
   filter(Domain %in% c("EUB","ARCH"))%>%
   group_by(Region, StationName, Depth, Domain) -> EUB_ARCH_absolute
 
-EUB_ARCH_vertical_boxplot <- ggplot(EUB_ARCH_absolute, aes(x= Region, y = FISH.conc.mn))+
+EUB_ARCH_absolute$Depth <- factor(EUB_ARCH_absolute$Depth, levels = c("DCM","EPI","MESO","BATHY"))
+
+
+DAPI_vertical_boxplot <- ggplot(EUB_ARCH_absolute, aes(x= Region, y = DAPI.conc.mn))+
   geom_boxplot(aes(fill = Region))+
-  facet_grid(Domain~Depth)+
+  facet_grid(Depth~.)+
+  geom_jitter(aes(x= Region, y = DAPI.conc.mn),width = 0.2, alpha = 0.3)+
+  #geom_signif(comparisons = list(c("EGC", "WSC"),c("EGC","N"),c("N","WSC")), 
+  #            map_signif_level=TRUE, test = "wilcox.test")+
+  scale_y_log10(name = "cell conc. [log10(Cells/mL)]")+
+  scale_fill_manual(values=c("WSC" = "red", "EGC" = "blue", "N" = "gray")) +
+  theme_bw()+
+  coord_flip()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),legend.position = "none")
+
+p <- list()
+for (i in c("EUB","ARCH")){
+p[[i]] <-  ggplot(EUB_ARCH_absolute[EUB_ARCH_absolute$Domain== i,], aes(x= Region, y = FISH.conc.mn))+
+  geom_boxplot(aes(fill = Region))+
+  facet_grid(Depth~.)+
   geom_jitter(aes(x= Region, y = FISH.conc.mn),width = 0.2, alpha = 0.3)+
   #geom_signif(comparisons = list(c("EGC", "WSC"),c("EGC","N"),c("N","WSC")), 
   #            map_signif_level=TRUE, test = "wilcox.test")+
   scale_y_log10(name = "cell conc. [log10(Cells/mL)]")+
   scale_fill_manual(values=c("WSC" = "red", "EGC" = "blue", "N" = "gray")) +
   theme_bw()+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),legend.position = "bottom")
+  coord_flip()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),legend.position = "none")
+}
+
+plot_grid(DAPI_vertical_boxplot, p[["EUB"]],p[["ARCH"]], ncol =3)
 
 #save the figure
 ggsave("./figures/Figure-2.png", 
-       plot = EUB_ARCH_vertical_boxplot,
+       plot = last_plot(),
        scale = 1,
        units = "cm",
        #width = 17.8,

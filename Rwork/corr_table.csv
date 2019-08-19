@@ -1,0 +1,5 @@
+"","Domain","variable","estimate","statistic","p.value","parameter","conf.low","conf.high","method","alternative"
+"1","ROS","Temperature",0.665447460850607,2.52151253916754,0.0357245200563208,8,0.0616525406369921,0.912677289173364,"Pearson's product-moment correlation","two.sided"
+"2","VER","Temperature",0.784721416846945,3.58075715416561,0.00718035719226111,8,0.306561308840635,0.946633741847388,"Pearson's product-moment correlation","two.sided"
+"3","POL","d.NH4.",0.810337456464512,3.91147315103988,0.00447175924420196,8,0.368956232221566,0.953485920234334,"Pearson's product-moment correlation","two.sided"
+"4","GAM","d.PO4.",0.738997308716353,3.10252937823501,0.0146097199033963,8,0.204543484046724,0.934027809443225,"Pearson's product-moment correlation","two.sided"

@@ -6,18 +6,6 @@ library(tidyr); packageVersion("tidyr")
 library(ggplot2); packageVersion("ggplot2")
 library(cowplot); packageVersion("cowplot")
 
-
-
-library(ggsignif); packageVersion("ggsignif")
-
-
-library(PerformanceAnalytics); packageVersion("PerformanceAnalytics")
-
-library(tidyverse); packageVersion("tidyverse")
-library(broom); packageVersion("broom")
-library(fs); packageVersion("fs")
-library(lubridate); packageVersion("lubridate")
-
 ###################################
 ## defined functions
 ###################################
@@ -46,6 +34,7 @@ raw.counts.SH <- raw.counts %>%
 
 #calculate concetrations per sample and add regions
 counts_all <-  raw.counts.SH %>% 
+  filter(FISH_conc > 0) %>% 
   mutate(Region = ifelse(StationName %in% c("EG1","EG4"), "EGC", 
                          ifelse(StationName %in% c("N3","N4","N5"), "N", "WSC")),
          Depth = factor(Depth, levels = c("SRF","EPI","MESO","BATHY"))) %>% 

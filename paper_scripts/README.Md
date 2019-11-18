@@ -1,10 +1,6 @@
 This directory contains scripts and data for the analysis of phylogenetic groups obtained with semi-automatic CAtalyzed Reporter Deposition-Fluorescence In Situ Hybridization. The code and data are included in the publication: Cardozo M.G., Fadeev E., Salman-Carvalho V., Boetius A. **Extensive quantitative taxonomic characterization of Arctic pelagic microbial communities from the surface to the deep ocean in ice-covered and ice-free regions of the Fram Strait.** 
 
-___
-
 ### Data: This directory contains the cell counts per Field of View and the contextual data. 
-
-___
 
 ### Scripts: This directory contains the following scripts:
 

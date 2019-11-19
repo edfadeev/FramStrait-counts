@@ -1,0 +1,212 @@
+---
+title: "Data_analysis"
+author: "Magda Cardozo"
+date: "19/11/2019"
+output: html_document
+---
+
+## Load required libraries
+
+```{r fun}
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(tidyr))
+suppressPackageStartupMessages(library(ggsignif))
+```
+
+## Load data
+```{r data}
+load("Abundances.RData")
+```
+
+## Check the coverage of Bacteria and Archaea probes in comparison to DAPI
+
+Coverage by probes
+```{r covEA}
+counts_all%>% 
+  filter(Domain %in% c("EUB","ARCH"))%>%
+  group_by(Region, StationName, Depth, Domain) %>% 
+  summarise(proportion = FISH.conc.mn/DAPI.conc.mn)-> EUB_ARCH_prop
+```
+
+Total coverage
+```{r covT}
+EUB_ARCH_prop%>%
+  group_by(Region, StationName, Depth) %>% 
+  summarise(total.coverage = sum(proportion),
+            sd.coverage = se(proportion)) -> EUB_ARCH_coverage
+```
+
+By regions
+```{r covR}
+EUB_ARCH_coverage %>%
+  group_by(Region, Depth) %>% 
+  summarise(mean.coverage = mean(total.coverage),
+            sd.coverage = se(total.coverage)) -> EUB_ARCH_coverage_by_region
+```
+
+Proportions by depth
+```{r covD}
+EUB_ARCH_coverage %>%
+  group_by(Depth) %>% 
+  summarise(mean.coverage = mean(total.coverage),
+            sd.coverage = se(total.coverage)) -> EUB_ARCH_coverage_by_depth
+```            
+            
+Siginificance tests
+```{r sig}
+wilcox.test(EUB_ARCH_coverage[EUB_ARCH_coverage$Region == "WSC",]$total.coverage,
+            EUB_ARCH_coverage[EUB_ARCH_coverage$Region == "N",]$total.coverage)
+
+wilcox.test(EUB_ARCH_coverage[EUB_ARCH_coverage$Region == "WSC",]$total.coverage,
+            EUB_ARCH_coverage[EUB_ARCH_coverage$Region == "EGC",]$total.coverage)
+
+wilcox.test(EUB_ARCH_coverage[EUB_ARCH_coverage$Region == "N",]$total.coverage,
+            EUB_ARCH_coverage[EUB_ARCH_coverage$Region == "EGC",]$total.coverage)
+```  
+
+## Significance of DAPI  with depth
+
+```{r sigDAPIDpth}
+counts_all%>% 
+  group_by(Region, StationName, Depth) %>% 
+  summarise(mean.DAPI = mean(DAPI.conc.mn),
+            sd.dapi =se(DAPI.conc.mn))-> DAPI_sum
+
+wilcox.test(DAPI_sum[DAPI_sum$Depth == "SRF",]$mean.DAPI,
+            DAPI_sum[DAPI_sum$Depth == "EPI",]$mean.DAPI)
+
+wilcox.test(DAPI_sum[DAPI_sum$Depth == "EPI",]$mean.DAPI,
+            DAPI_sum[DAPI_sum$Depth == "MESO",]$mean.DAPI)
+
+wilcox.test(DAPI_sum[DAPI_sum$Depth == "MESO",]$mean.DAPI,
+            DAPI_sum[DAPI_sum$Depth == "BATHY",]$mean.DAPI)
+``` 
+
+```{r sumDAPIDpth}
+DAPI_sum %>% 
+  group_by(Region, Depth) %>% 
+  summarise(mean = mean(mean.DAPI),
+            sd.dapi =se(mean.DAPI))-> DAPI_sum_region
+
+```
+
+## Significance of Bacteria with depth
+
+```{r sigBACIDpth}
+counts_all%>% 
+  filter(Domain %in% c("EUB"))%>%
+  group_by(Region, StationName, Depth) %>% 
+  summarise(mean.FISH = mean(FISH.conc.mn),
+            sd.FISH =se(FISH.conc.mn))-> EUB_sum
+
+wilcox.test(EUB_sum[EUB_sum$Depth == "SRF",]$mean.FISH,
+            EUB_sum[EUB_sum$Depth == "EPI",]$mean.FISH)
+
+wilcox.test(EUB_sum[EUB_sum$Depth == "EPI",]$mean.FISH,
+            EUB_sum[EUB_sum$Depth == "MESO",]$mean.FISH)
+
+wilcox.test(EUB_sum[EUB_sum$Depth == "MESO",]$mean.FISH,
+            EUB_sum[EUB_sum$Depth == "BATHY",]$mean.FISH)
+```
+
+## Significance of groups between the regions 
+
+Change Domain to see different groups
+```{r sigGrReg}
+counts_all%>% 
+  filter(Domain %in% c("EUB"))%>%
+  filter(Depth %in% c("SRF"))%>% 
+  group_by(Region, StationName, Depth) %>% 
+  summarise(mean.FISH = mean(FISH.conc.mn),
+            sd.FISH =se(FISH.conc.mn))-> EUB_sum
+
+wilcox.test(EUB_sum[EUB_sum$Region == "EGC",]$mean.FISH,
+            EUB_sum[EUB_sum$Region == "N",]$mean.FISH)
+
+wilcox.test(EUB_sum[EUB_sum$Region == "EGC",]$mean.FISH,
+            EUB_sum[EUB_sum$Region == "WSC",]$mean.FISH)
+
+wilcox.test(EUB_sum[EUB_sum$Region == "N",]$mean.FISH,
+            EUB_sum[EUB_sum$Region == "WSC",]$mean.FISH)
+```
+
+## Significance of deep DAPI between regions
+
+```{r sigDAPIReg}
+counts_all%>% 
+  filter(Depth %in% c("BATHY"))%>%
+  group_by(Region, StationName, Depth) %>% 
+  summarise(mean.DAPI = mean(DAPI.conc.mn),
+            sd.dapi =se(DAPI.conc.mn))-> DAPI_sum_meso
+
+wilcox.test(DAPI_sum_meso[DAPI_sum_meso$Region == "N",]$mean.DAPI,
+            DAPI_sum_meso[DAPI_sum_meso$Region == "WSC",]$mean.DAPI)
+```
+
+## Overview of phylogenetic group abundances by regions
+
+Calculate abundance in surface by region
+```{r FISH}
+counts_all%>% 
+  filter(Depth == "DCM")%>%
+  group_by(Region, Domain) %>%
+  summarise(mean.abund = mean(FISH.conc.mn),
+            se.abund = se(FISH.conc.mn),
+            n= length(FISH.conc.mn))-> FISH_abundance_surface_by_region
+```
+
+Make wide table
+```{r FISHw}
+FISH_abundance_surface_by_region %>%
+  select(Region,Domain,mean.abund)%>%
+  spread(Region,mean.abund) -> FISH_abundance_surface_by_region_wide
+```
+
+Calculate abundances by region
+```{r FISHreg}
+counts_all%>% 
+  group_by(Region, Domain, Depth) %>%
+  summarise(mean.abund = mean(FISH.conc.mn),
+            se.abund = se(FISH.conc.mn),
+            n= length(FISH.conc.mn))-> FISH_abundances_by_region
+FISH_abundances_by_region$Depth <- factor(FISH_abundances_by_region$Depth, levels = c("SRF","EPI","MESO","BATHY"))
+FISH_abundances_by_region %>%
+  select(Region,Domain,Depth,mean.abund)%>%
+  spread(Domain,mean.abund) -> FISH_abundance_by_region_wide
+
+#write.csv(FISH_abundance_by_region_wide, file="~/CARD-FISH/CARD-FISH_water_project/cell_densities.csv")
+```
+
+Calculate proportional abundance of the different groups at the surface
+```{r FISHSRF}
+counts_all%>% 
+  filter(Depth %in% c("SRF"))%>%
+  #left_join(.,total_abundance_surface_by_station[,c("StationName","total.abund")], by = "StationName") %>%
+  group_by(Region, Depth, StationName, Domain)%>%
+  mutate(proportion = (FISH.conc.mn / DAPI.conc.mn)*100) %>%
+  select(Region, StationName, Domain, FISH.conc.mn, proportion)  -> surface_FISH_proportion
+```
+
+Summarize by regions
+```{r FSRFreg}
+surface_FISH_proportion%>%
+  group_by(Region, Domain) %>% 
+  summarise (mean.abund = mean(FISH.conc.mn),
+             se.abund = se(FISH.conc.mn), 
+             mean.prop = mean(proportion),
+             se.prop = se(proportion)) -> surface_FISH_proportion_by_regions
+```
+
+Calculate proportional abundance of the different groups
+```{r FSRFgr}
+counts_all%>% 
+  group_by(Region, StationName, Domain)%>%
+  mutate(proportion = (FISH.conc.mn / DAPI.conc.mn)*100) %>%
+  group_by(Region, Domain, Depth) %>%
+  summarise(mean.prop = mean(proportion),
+            se.prop = se(proportion))%>%
+  select(Region, Domain, mean.prop, Depth) %>%
+  spread(Domain,mean.prop) ->  FISH_proportion
+```  
+ 
+ 

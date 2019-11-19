@@ -6,10 +6,12 @@ This directory contains the cell counts per Field of View and the contextual dat
 ### Scripts: 
 This directory contains the following scripts:
 
-- Figures_and_statistics_by_EF_MC_05.08.19.R: Main script used to import the data and to obtain absolute and relative abundances in the different regions, including coverage of probes, and DAPI, distribution with depth, significance of groups between the regions, overview of phylogenetic groups by regions. 
+- Import_and_cell_abundance.Rmd: Script used to import the data and to obtain absolute cell abundances. 
 
-- FISH_correlations.R: Correlation analysis.
+- Data_analysis.Rmd: Script used to obtain the coverage, and significant tests. 
 
-- Figure3-Depth_profiles.R
+- FISH_correlations.Rmd: Correlation analysis.
 
-- FIgure_2-DAPI_EUB_ARCH_overview.R
+- Figure_3.Rmd
+
+- FIgure_2.Rmd

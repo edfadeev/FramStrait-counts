@@ -114,7 +114,7 @@ wilcox.test(EUB_sum[EUB_sum$Depth == "MESO",]$mean.FISH,
 Change Domain to see different groups
 ```{r sigGrReg}
 counts_all%>% 
-  filter(Domain %in% c("EUB"))%>%
+  filter(Domain %in% c("SAR202"))%>%
   filter(Depth %in% c("SRF"))%>% 
   group_by(Region, StationName, Depth) %>% 
   summarise(mean.FISH = mean(FISH.conc.mn),
@@ -134,13 +134,13 @@ wilcox.test(EUB_sum[EUB_sum$Region == "N",]$mean.FISH,
 
 ```{r sigDAPIReg}
 counts_all%>% 
-  filter(Depth %in% c("BATHY"))%>%
+  filter(Depth %in% c("EPI"))%>%
   group_by(Region, StationName, Depth) %>% 
   summarise(mean.DAPI = mean(DAPI.conc.mn),
-            sd.dapi =se(DAPI.conc.mn))-> DAPI_sum_meso
+            sd.dapi =se(DAPI.conc.mn))-> DAPI_sum_SRF
 
-wilcox.test(DAPI_sum_meso[DAPI_sum_meso$Region == "N",]$mean.DAPI,
-            DAPI_sum_meso[DAPI_sum_meso$Region == "WSC",]$mean.DAPI)
+wilcox.test(DAPI_sum_meso[DAPI_sum_meso$Region == "EGC",]$mean.DAPI,
+            DAPI_sum_meso[DAPI_sum_meso$Region == "N",]$mean.DAPI)
 ```
 
 ## Overview of phylogenetic group abundances by regions
@@ -148,7 +148,7 @@ wilcox.test(DAPI_sum_meso[DAPI_sum_meso$Region == "N",]$mean.DAPI,
 Calculate abundance in surface by region
 ```{r FISH}
 counts_all%>% 
-  filter(Depth == "DCM")%>%
+  filter(Depth == "SRF")%>%
   group_by(Region, Domain) %>%
   summarise(mean.abund = mean(FISH.conc.mn),
             se.abund = se(FISH.conc.mn),
@@ -171,7 +171,7 @@ counts_all%>%
             n= length(FISH.conc.mn))-> FISH_abundances_by_region
 FISH_abundances_by_region$Depth <- factor(FISH_abundances_by_region$Depth, levels = c("SRF","EPI","MESO","BATHY"))
 FISH_abundances_by_region %>%
-  select(Region,Domain,Depth,mean.abund)%>%
+  select(Region,Domain,Depth,mean.abund,se.abund,n)%>%
   spread(Domain,mean.abund) -> FISH_abundance_by_region_wide
 
 #write.csv(FISH_abundance_by_region_wide, file="~/CARD-FISH/CARD-FISH_water_project/cell_densities.csv")

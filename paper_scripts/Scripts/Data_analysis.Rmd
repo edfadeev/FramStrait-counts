@@ -85,8 +85,8 @@ wilcox.test(DAPI_sum[DAPI_sum$Depth == "MESO",]$mean.DAPI,
 ```{r sumDAPIDpth}
 DAPI_sum %>% 
   group_by(Region, Depth) %>% 
-  summarise(mean = mean(mean.DAPI),
-            sd.dapi =se(mean.DAPI))-> DAPI_sum_region
+  summarise(dapimean = mean(mean.DAPI)/100000,
+            sd.dapi =se(mean.DAPI)/100000)-> DAPI_sum_region
 
 ```
 
@@ -134,10 +134,10 @@ wilcox.test(EUB_sum[EUB_sum$Region == "N",]$mean.FISH,
 
 ```{r sigDAPIReg}
 counts_all%>% 
-  filter(Depth %in% c("EPI"))%>%
+  filter(Depth %in% c("MESO"))%>%
   group_by(Region, StationName, Depth) %>% 
   summarise(mean.DAPI = mean(DAPI.conc.mn),
-            sd.dapi =se(DAPI.conc.mn))-> DAPI_sum_SRF
+            sd.dapi =se(DAPI.conc.mn))-> DAPI_sum_meso
 
 wilcox.test(DAPI_sum_meso[DAPI_sum_meso$Region == "EGC",]$mean.DAPI,
             DAPI_sum_meso[DAPI_sum_meso$Region == "N",]$mean.DAPI)
@@ -166,15 +166,21 @@ Calculate abundances by region
 ```{r FISHreg}
 counts_all%>% 
   group_by(Region, Domain, Depth) %>%
-  summarise(mean.abund = mean(FISH.conc.mn),
-            se.abund = se(FISH.conc.mn),
-            n= length(FISH.conc.mn))-> FISH_abundances_by_region
+  summarise(mean.abund = mean(FISH.conc.mn)/100000,
+            se.abund = se(FISH.conc.mn)/100000,
+            n= sum(n))-> FISH_abundances_by_region
+
 FISH_abundances_by_region$Depth <- factor(FISH_abundances_by_region$Depth, levels = c("SRF","EPI","MESO","BATHY"))
 FISH_abundances_by_region %>%
-  select(Region,Domain,Depth,mean.abund,se.abund,n)%>%
+  select(Region,Domain,Depth,mean.abund)%>%
   spread(Domain,mean.abund) -> FISH_abundance_by_region_wide
 
-#write.csv(FISH_abundance_by_region_wide, file="~/CARD-FISH/CARD-FISH_water_project/cell_densities.csv")
+FISH_and_dapi_abundance_by_region_w <- left_join(
+  DAPI_sum_region[, c("Region", "Depth", "dapimean")],
+  FISH_abundance_by_region_wide,
+  by = c("Region", "Depth"))
+
+#write.csv(FISH_and_dapi_abundance_by_region_w, file="~/CARD-FISH/CARD-FISH_water_project/cell_densities.csv")
 ```
 
 Calculate proportional abundance of the different groups at the surface
@@ -207,6 +213,8 @@ counts_all%>%
             se.prop = se(proportion))%>%
   select(Region, Domain, mean.prop, Depth) %>%
   spread(Domain,mean.prop) ->  FISH_proportion
+
+#write.csv(FISH_proportion, file="~/CARD-FISH/CARD-FISH_water_project/cell_prortions.csv")
 ```  
  
  

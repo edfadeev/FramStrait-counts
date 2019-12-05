@@ -12,6 +12,4 @@ This directory contains the following scripts:
 
 - FISH_correlations.Rmd: Correlation analysis.
 
-- Figure_3.Rmd
-
-- FIgure_2.Rmd
+- Figure_2.Rmd

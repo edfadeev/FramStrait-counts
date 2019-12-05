@@ -51,9 +51,9 @@ chart.Correlation(metadata.scaled[,env.par], method = "pearson", histogram=TRUE,
 
 ## Correlation between environmental parameters and counts
 
-list all taxa (excluding EUB and ARCH)
+list all taxa 
 ```{r tax}
-taxa <- c("ALT", "BACT", "CFX", "CREN", "DELTA", "GAM", "OPI", "POL", "ROS", "SAR11", "SAR202","SAR324", "SAR406", "VER")
+taxa <- c("EUB", "ARCH", "ALT", "BACT", "CFX", "CREN", "DELTA", "GAM", "OPI", "POL", "ROS", "SAR11", "SAR202","SAR324", "SAR406", "VER")
 ```
 
 Select only surface samples

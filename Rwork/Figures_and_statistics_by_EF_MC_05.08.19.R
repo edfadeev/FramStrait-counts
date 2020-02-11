@@ -408,7 +408,7 @@ ggsave("./Figure-NMDS.png",
 # Env. parameter coorelation test 
 ##################################
 ## import environmental metadata 
-metadata <- read.csv("PS99_samples_meta_EF_MC_nutrient_corrected.csv", sep = ",", dec = ".", header = TRUE)
+metadata <- read.csv("./Rwork/PS99_samples_meta_EF_MC_nutrient_corrected.csv", sep = ",", dec = ".", header = TRUE)
 
 #remove station SV2 from the dataset
 metadata <- subset(metadata, !StationName == "SV2")
@@ -440,6 +440,7 @@ text(-0.5, 1:8,  expression("                                                   
 ##################################
 
 taxa.sp <- c("CREN","ARCH", "DELTA", "POL","SAR202","SAR324","SAR406","EUB","BACT","CFX","GAM","OPI","ROS","SAR11", "VER","ALT")
+
 #select only surface samples
 env %>%
   filter (Depth == "DCM") -> env.SRF
@@ -497,7 +498,8 @@ data_nest <- group_by(data, Domain, variable) %>% nest()
 data_nest
 
 #define function for correlation 
-cor_fun <- function(df) cor.test(df$Abund, df$value, method = "spearman") %>% tidy()
+cor_fun <- function(df) cor.test(df$Abund, df$value, method = "pearson",conf.level = 0.95) %>% tidy()
+
 
 #nested correlations tests
 data_nest <- mutate(data_nest, model = map(data, cor_fun))
@@ -507,6 +509,7 @@ data_nest
 corr_pr <- select(data_nest, -data) %>% unnest()
 corr_pr
 
+corr_pr.sign <- filter(corr_pr, p.value < 0.05)
 ##################################
 # Depth profiles by taxa with log10 of absolute counts
 ##################################

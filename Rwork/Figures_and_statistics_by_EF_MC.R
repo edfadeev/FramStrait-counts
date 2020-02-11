@@ -443,24 +443,3 @@ data_nest
 corr_pr <- select(data_nest, -data) %>% unnest()
 corr_pr
 
-
-##################################
-# correlation between env. par. and relative counts 
-##################################
-surface_FISH_proportion$Domain <- factor(surface_FISH_proportion$Domain, levels = c("CREN","ARCH", "DELTA", "POL","SAR202","SAR324","SAR406","EUB","BACT","CFX","GAM","OPI","ROS","SAR11", "VER","ALT"))
-surface_FISH_proportion%>% 
-  filter(Depth == "DCM")%>%
-  select(Depth, Region, StationName, Domain, proportion) %>%
-  spread(Domain, proportion) -> surface_FISH_proportion_wide
-
-#drop samples with no env. data
-surface_FISH_proportion_wide %>%
-  filter(StationName %in% env.SRF$StationName) -> surface_FISH_prop
-
-
-#calculate spearmancorrelation with relative adundances
-cor.env.counts.rel <- cor(env.SRF[,env.par], surface_FISH_prop[,taxa.sp], method = "spearman")
-table.spearman.rel <- as.data.frame(cor.env.counts.rel)
-write.csv(table.spearman.rel, file="~/CARD-FISH/CARD-FISH_water_project/spearman_table_rel.csv")
-
-

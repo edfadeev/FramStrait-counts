@@ -6,7 +6,12 @@ library(dplyr); packageVersion("dplyr")
 library(ggsignif); packageVersion("ggsignif")
 library(cowplot); packageVersion("cowplot")
 library(tidyr); packageVersion("tidyr")
-library("PerformanceAnalytics"); packageVersion("PerformanceAnalytics")
+library(PerformanceAnalytics); packageVersion("PerformanceAnalytics")
+
+library(tidyverse)
+library(broom)
+library(fs)
+library(lubridate)
 
 ###################################
 ## defined functions
@@ -101,24 +106,25 @@ EUB_ARCH_coverage %>%
 ###################################
 ##Plot EUB and ARCH profiles by region
 ###################################
-counts_all%>% 
-  filter(Domain %in% c("EUB","ARCH"))%>%
-  group_by(Region, StationName, Depth, Domain) -> EUB_ARCH_absolute
+counts_all$Depth <- factor(counts_all$Depth, levels = c("DCM","EPI","MESO","BATHY"))
 
-EUB_ARCH_absolute$Depth <- factor(EUB_ARCH_absolute$Depth, levels = c("DCM","EPI","MESO","BATHY"))
-
-
-DAPI_vertical_boxplot <- ggplot(EUB_ARCH_absolute, aes(x= Region, y = DAPI.conc.mn))+
+DAPI_vertical_boxplot <- ggplot(counts_all, aes(x= Region, y = DAPI.conc.mn))+
   geom_boxplot(aes(fill = Region))+
   facet_grid(Depth~.)+
   geom_jitter(aes(x= Region, y = DAPI.conc.mn),width = 0.2, alpha = 0.3)+
   #geom_signif(comparisons = list(c("EGC", "WSC"),c("EGC","N"),c("N","WSC")), 
   #            map_signif_level=TRUE, test = "wilcox.test")+
-  scale_y_log10(name = "cell conc. [log10(Cells/mL)]")+
+  scale_y_log10(name = "cell concentration (Cells/mL)")+
   scale_fill_manual(values=c("WSC" = "red", "EGC" = "blue", "N" = "gray")) +
   theme_bw()+
   coord_flip()+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),legend.position = "none")
+
+counts_all%>% 
+  filter(Domain %in% c("EUB","ARCH"))%>%
+  group_by(Region, StationName, Depth, Domain) -> EUB_ARCH_absolute
+
+EUB_ARCH_absolute$Depth <- factor(EUB_ARCH_absolute$Depth, levels = c("DCM","EPI","MESO","BATHY"))
 
 p <- list()
 for (i in c("EUB","ARCH")){
@@ -128,7 +134,7 @@ p[[i]] <-  ggplot(EUB_ARCH_absolute[EUB_ARCH_absolute$Domain== i,], aes(x= Regio
   geom_jitter(aes(x= Region, y = FISH.conc.mn),width = 0.2, alpha = 0.3)+
   #geom_signif(comparisons = list(c("EGC", "WSC"),c("EGC","N"),c("N","WSC")), 
   #            map_signif_level=TRUE, test = "wilcox.test")+
-  scale_y_log10(name = "cell conc. [log10(Cells/mL)]")+
+  scale_y_log10(name = "cell concentration (cells/mL)")+
   scale_fill_manual(values=c("WSC" = "red", "EGC" = "blue", "N" = "gray")) +
   theme_bw()+
   coord_flip()+
@@ -138,7 +144,7 @@ p[[i]] <-  ggplot(EUB_ARCH_absolute[EUB_ARCH_absolute$Domain== i,], aes(x= Regio
 plot_grid(DAPI_vertical_boxplot, p[["EUB"]],p[["ARCH"]], ncol =3)
 
 #save the figure
-ggsave("./figures/Figure-2.png", 
+ggsave("./figures/Figure-2.pdf", 
        plot = last_plot(),
        scale = 1,
        units = "cm",
@@ -189,7 +195,7 @@ surface_FISH_proportion%>%
   summarise (mean.abund = mean(FISH.conc.mn),
              se.abund = se(FISH.conc.mn), 
              mean.prop = mean(proportion),
-             se.prop = se(proportion)) -> surface_FISH_proportion_by_regions
+             se.prop = se(proportion)) -> surface_FISH_by_regions
 
 
 ##################################
@@ -235,27 +241,18 @@ ggsave("./figures/Figure-NMDS.png",
        dpi = 300)
 
 
-
-
-
-
-
-
 ##################################
 # Env. parameter coorelation test 
 ##################################
 ## import environmental metadata 
-metadata <- read.csv("PS99_samples_meta_EF_MC_nutrient_corrected.csv", sep = ",", dec = ".", header = TRUE)
+metadata <- read.csv("./Rwork/PS99_samples_meta_EF_MC_nutrient_corrected.csv", sep = ",", dec = ".", header = TRUE)
 
 #remove station SV2 from the dataset
 metadata <- subset(metadata, !StationName == "SV2")
 
 #list environmental parameters that need to be scaled
 env.par <- c("Temperature","Salinity", 
-           "Chla_fluor", "NO3.NO2", 
-           "NO2", "NO3", 
-           "SiO3", "PO4",
-           "NH4")
+             "Chla_fluor", "d.NO3.NO2.", "d.NO3.", "d.NH4.", "d.PO4.", "d.SiO3.")
 
 #drop rows with NA and scale the env. parameters 
 metadata %>% 
@@ -265,20 +262,89 @@ metadata %>%
 #Calculate the Pearson’s correlation coefficient in a matrix
 chart.Correlation(env[,env.par], histogram=TRUE, pch=19)
 
-
 ##################################
 # correlation between env. par. and counts
 ##################################
+#list all taxa (excluding EUB and ARCH)
+taxa <- c("ALT", "BACT", "CFX", "CREN", "DELTA", "GAM", "OPI", "POL", "ROS", "SAR11", "SAR202","SAR324", "SAR406", "VER")
+
+#generate wide abundance table 
+counts_all%>% 
+  filter(Depth %in% c("DCM"))%>%
+  group_by(Region, StationName, Domain)%>%
+  select(Region, StationName, Domain, FISH.conc.mn)  %>% 
+  spread(Domain, FISH.conc.mn) -> surface_FISH_abundance_wide
+
 #select only surface samples
 env %>%
   filter (Depth == "DCM") -> env.SRF
 
 #drop samples with no env. data
-surface_FISH_proportion_wide %>%
-  filter(StationName %in% env.SRF$StationName) -> surface_FISH_counts
+surface_FISH_abundance_wide %>%
+  filter(StationName %in% env.SRF$StationName) -> surface_FISH_abundance_wide
 
-#calculate spearman ranked correlation between each taxa and env. parameters.
-cor(env.SRF[,env.par], surface_FISH_counts[,taxa], method = "spearman")
+#merge counts and environmental data
+data_all <- left_join(surface_FISH_abundance_wide, env.SRF[,c("StationName",env.par)] , by = "StationName")
+
+#generate long table
+data <- gather(data_all, Domain, Abund, taxa)%>%
+  gather(variable, value, env.par)
+
+#nest the table according to taxa and env. variable
+data_nest <- group_by(data, Domain, variable) %>% nest()
+data_nest
+
+#define function for correlation 
+cor_fun <- function(df) cor.test(df$Abund, df$value, method = "pearson",conf.level = 0.95) %>% tidy()
+
+
+#nested correlations tests
+data_nest <- mutate(data_nest, model = map(data, cor_fun))
+data_nest
+
+#summary table
+corr_pr <- select(data_nest, -data) %>% unnest()
+corr_pr
+
+corr_pr.sign <- filter(corr_pr, p.value < 0.05)
+
+
+##################################
+# Depth profiles by taxa 
+##################################
+counts_all%>%ungroup() %>% 
+  group_by(Region, Depth, Domain) %>% 
+  summarise (mean.abund = mean(FISH.conc.mn),
+             se.abund = se(FISH.conc.mn))-> counts_FISH_by_regions
+
+
+counts_FISH_by_regions %>% ungroup() %>% mutate_if(is.factor, as.character) %>% 
+                          mutate(Depth=replace(Depth, Depth=="DCM", 20),
+                                 Depth=replace(Depth, Depth=="EPI", 100),
+                                  Depth=replace(Depth, Depth=="MESO", 1000),
+                                  Depth=replace(Depth, Depth=="BATHY", 2000)) %>% 
+                                mutate(Depth = as.numeric(Depth))  -> counts_FISH_by_regions
+
+counts_FISH_by_regions$mean.abund <- as.numeric(counts_FISH_by_regions$mean.abund)
+
+
+## Get points
+ps <- data.frame(xspline(counts_FISH_by_regions[,c()], shape=-0.2, lwd=2, draw=F))
+
+
+Depth_profiles_abs_abundance.p <- ggplot(counts_FISH_by_regions, aes(y = mean.abund, x = Depth))+
+  geom_point(aes(color =Region, group=Region),shape=1)+
+  geom_smooth(aes(colour = Region), method = "auto")+
+  scale_y_log10()+
+  scale_x_reverse()+
+  coord_flip()+
+  facet_wrap(.~Domain)+
+  labs(y = "Cell abundance [log10(Cells/mL)]", x = "Depth zone")+
+  #scale_x_discrete(labels=c("DCM" = "Surface", "EPI" = "Epipelagic","MESO" = "Mesopelagic", "BATHY" = "Bathypelagic", "ABYSS" = "Abyssopelagic"))+
+  scale_color_manual(breaks = c("EGC", "N", "WSC"), values = c("blue", "gray", "red"))+
+  theme_bw()+
+  theme(strip.background =element_rect(fill="white"))+
+  theme(strip.text = element_text(face = "italic"))+theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 
 
 
@@ -288,24 +354,23 @@ cor(env.SRF[,env.par], surface_FISH_counts[,taxa], method = "spearman")
 
 
 
-#################################
-# Below this point it is just draft garbage that will be removed at the end
-###################################
+
+
+
+
+
+
+
+
+
+
 
 
 
 ##################################
 # RDA for surface waters (not sure that this is the correct method to use, becuase it requires compositional data)
 ##################################
-#list all taxa (excluding EUB and ARCH)
-taxa <- c("ALT", "BACT", "CFX", "CREN", "DELTA", "GAM", "OPI", "POL", "ROS", "SAR11", "SAR202","SAR324", "SAR406", "VER")
 
-#generate wide proportions table 
-surface_FISH_proportion %>% 
-  select(Region, StationName, Domain, FISH.conc.mn) %>%
-  group_by(Region, StationName) %>%
-  filter(Domain %in% taxa) %>% 
-  spread(Domain, FISH.conc.mn) -> surface_FISH_proportion_wide
 
 
 

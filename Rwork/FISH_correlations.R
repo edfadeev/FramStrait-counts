@@ -20,7 +20,7 @@ se <- function(x, na.rm=FALSE) {
 scale_par <- function(x) scale(x, center = FALSE, scale = TRUE)[,1]
 
 #define function for correlation 
-cor_fun <- function(df) cor.test(df$Abund, df$value, method = "pearson",conf.level = 0.95) %>% tidy()
+cor_fun <- function(df) cor.test(df$Abund, df$value, method = "pearson",conf.level = 0.95, adjust="Bonferroni") %>% tidy()
 #microscope calculation factor
 calc.factor <- 99515.5458411807
 
@@ -101,8 +101,11 @@ data_nest <- gather(data_all, Domain, Abund, taxa)%>%
 data_nest <- mutate(data_nest, model = map(data, cor_fun))
 
 #summary table
-corr_pr.sign <- select(data_nest, -data) %>% unnest() %>% 
-  #extract only significant results 
-              filter(p.value < 0.05)
+corr_pr <- select(data_nest, -data) %>% unnest() 
 
-write.csv(corr_pr.sign, "./Rwork/corr_table.csv")
+#extract only significant results 
+corr_pr.sign <- filter(corr_pr,p.value < 0.05)
+
+              
+
+write.csv(corr_pr, "./Rwork/corr_table.csv")

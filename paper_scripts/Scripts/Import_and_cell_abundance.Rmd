@@ -47,7 +47,8 @@ Calculate abundances per sample and add regions
 ```{r consp}
 counts_all <-  raw.counts.SH %>% 
   filter(FISH_conc > 0) %>% 
-  mutate(Region = ifelse(StationName %in% c("EG1","EG4"), "EGC", 
+  mutate(Depth = ifelse(Depth %in% c("DCM"), "SRF",Depth),
+    Region = ifelse(StationName %in% c("EG1","EG4"), "EGC", 
                          ifelse(StationName %in% c("N3","N4","N5"), "N", "WSC")),
          Depth = factor(Depth, levels = c("SRF","EPI","MESO","BATHY"))) %>% 
           group_by(Region, StationName, Depth, Domain) %>% 

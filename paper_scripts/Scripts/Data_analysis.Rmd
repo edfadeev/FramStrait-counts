@@ -134,13 +134,14 @@ wilcox.test(EUB_sum[EUB_sum$Region == "N",]$mean.FISH,
 
 ```{r sigDAPIReg}
 counts_all%>% 
-  filter(Depth %in% c("MESO"))%>%
-  group_by(Region, StationName, Depth) %>% 
-  summarise(mean.DAPI = mean(DAPI.conc.mn),
-            sd.dapi =se(DAPI.conc.mn))-> DAPI_sum_meso
+  filter(Depth %in% c("SRF"))%>%
+  group_by(Region, StationName, Depth) -> DAPI_sum_meso
 
-wilcox.test(DAPI_sum_meso[DAPI_sum_meso$Region == "EGC",]$mean.DAPI,
-            DAPI_sum_meso[DAPI_sum_meso$Region == "N",]$mean.DAPI)
+#%>% summarise(mean.DAPI = mean(DAPI.conc.mn),
+#            sd.dapi =se(DAPI.conc.mn))-> DAPI_sum_meso
+
+wilcox.test(DAPI_sum_meso[DAPI_sum_meso$Region == "N",]$DAPI.conc.mn,
+            DAPI_sum_meso[DAPI_sum_meso$Region =="WSC",]$DAPI.conc.mn)
 ```
 
 ## Overview of phylogenetic group abundances by regions

@@ -60,14 +60,20 @@ EUB_ARCH_prop%>%
 #  summarise(total.coverage = sum(proportion),
 #            sd.coverage = se(proportion)) -> EUB_ARCH_coverage
 
-wilcox.test(EUB_ARCH_cov[EUB_ARCH_cov$Region == "WSC",]$proportion,
+test <- wilcox.test(EUB_ARCH_cov[EUB_ARCH_cov$Region == "WSC",]$proportion,
             EUB_ARCH_cov[EUB_ARCH_cov$Region == "N",]$proportion)
 
-wilcox.test(EUB_ARCH_cov[EUB_ARCH_cov$Region == "WSC",]$proportion,
+p.adjust(test$p.value, method = "bonferroni")
+
+test2 <- wilcox.test(EUB_ARCH_cov[EUB_ARCH_cov$Region == "WSC",]$proportion,
             EUB_ARCH_cov[EUB_ARCH_cov$Region == "EGC",]$proportion)
 
-wilcox.test(EUB_ARCH_cov[EUB_ARCH_cov$Region == "N",]$proportion,
+p.adjust(test2$p.value, method = "bonferroni")
+
+test3 <- wilcox.test(EUB_ARCH_cov[EUB_ARCH_cov$Region == "N",]$proportion,
             EUB_ARCH_cov[EUB_ARCH_cov$Region == "EGC",]$proportion)
+
+p.adjust(test3$p.value, method = "bonferroni")
 ```  
 
 ## Significance of DAPI  with depth
@@ -78,27 +84,37 @@ counts_all%>%
 #  summarise(mean.DAPI = mean(DAPI.conc.mn),
 #            sd.dapi =se(DAPI.conc.mn))-> DAPI_sum
 
-wilcox.test(DAPI_sum[DAPI_sum$Depth == "SRF",]$DAPI.conc.mn,
+test4 <- wilcox.test(DAPI_sum[DAPI_sum$Depth == "SRF",]$DAPI.conc.mn,
             DAPI_sum[DAPI_sum$Depth == "EPI",]$DAPI.conc.mn)
+
+p.adjust(test4$p.value, method = "bonferroni")
 
 wilcoxonZ(DAPI_sum[DAPI_sum$Depth == "SRF",]$DAPI.conc.mn, #Calculates the z statistic 
             DAPI_sum[DAPI_sum$Depth == "EPI",]$DAPI.conc.mn,digits=4)
 
-wilcox.test(DAPI_sum[DAPI_sum$Depth == "EPI",]$DAPI.conc.mn,
+test5 <- wilcox.test(DAPI_sum[DAPI_sum$Depth == "EPI",]$DAPI.conc.mn,
             DAPI_sum[DAPI_sum$Depth == "MESO",]$DAPI.conc.mn)
+
+p.adjust(test5$p.value, method = "bonferroni")
 
 wilcoxonZ(DAPI_sum[DAPI_sum$Depth == "EPI",]$DAPI.conc.mn, #Calculates the z statistic 
             DAPI_sum[DAPI_sum$Depth == "MESO",]$DAPI.conc.mn,digits=4)
 
-wilcox.test(DAPI_sum[DAPI_sum$Depth == "MESO",]$DAPI.conc.mn,
+test6 <- wilcox.test(DAPI_sum[DAPI_sum$Depth == "MESO",]$DAPI.conc.mn,
             DAPI_sum[DAPI_sum$Depth == "BATHY",]$DAPI.conc.mn)
+
+p.adjust(test6$p.value, method = "bonferroni")
 
 wilcoxonZ(DAPI_sum[DAPI_sum$Depth == "MESO",]$DAPI.conc.mn, #Calculates the z statistic 
             DAPI_sum[DAPI_sum$Depth == "BATHY",]$DAPI.conc.mn,digits=4)
 ``` 
 
 ```{r sumDAPIDpth}
-DAPI_sum %>% 
+counts_all%>% 
+  group_by(Region, StationName, Depth) %>%  
+  summarise(mean.DAPI = mean(DAPI.conc.mn),
+            sd.dapi =se(DAPI.conc.mn))-> DAPI_sum_R
+DAPI_sum_R %>% 
   group_by(Region, Depth) %>% 
   summarise(dapimean = mean(mean.DAPI)/100000,
             sd.dapi =se(mean.DAPI)/100000)-> DAPI_sum_region
@@ -114,20 +130,26 @@ counts_all%>%
 #  summarise(mean.FISH = mean(FISH.conc.mn),
 #            sd.FISH =se(FISH.conc.mn))-> EUB_sum
 
-wilcox.test(EUB_sum[EUB_sum$Depth == "SRF",]$FISH.conc.mn,
+test7 <- wilcox.test(EUB_sum[EUB_sum$Depth == "SRF",]$FISH.conc.mn,
             EUB_sum[EUB_sum$Depth == "EPI",]$FISH.conc.mn)
+
+p.adjust(test7$p.value, method = "bonferroni")
 
 wilcoxonZ(EUB_sum[EUB_sum$Depth == "SRF",]$FISH.conc.mn,
             EUB_sum[EUB_sum$Depth == "EPI",]$FISH.conc.mn, digits = 4)
 
-wilcox.test(EUB_sum[EUB_sum$Depth == "EPI",]$FISH.conc.mn,
+test8 <- wilcox.test(EUB_sum[EUB_sum$Depth == "EPI",]$FISH.conc.mn,
             EUB_sum[EUB_sum$Depth == "MESO",]$FISH.conc.mn)
+
+p.adjust(test8$p.value, method = "bonferroni")
 
 wilcoxonZ(EUB_sum[EUB_sum$Depth == "EPI",]$FISH.conc.mn,
             EUB_sum[EUB_sum$Depth == "MESO",]$FISH.conc.mn, digits = 4)
 
-wilcox.test(EUB_sum[EUB_sum$Depth == "MESO",]$FISH.conc.mn,
+test9 <- wilcox.test(EUB_sum[EUB_sum$Depth == "MESO",]$FISH.conc.mn,
             EUB_sum[EUB_sum$Depth == "BATHY",]$FISH.conc.mn)
+
+p.adjust(test9$p.value, method = "bonferroni")
 
 wilcoxonZ(EUB_sum[EUB_sum$Depth == "MESO",]$FISH.conc.mn,
             EUB_sum[EUB_sum$Depth == "BATHY",]$FISH.conc.mn, digits = 4)
@@ -144,18 +166,24 @@ counts_all%>%
 #  summarise(mean.FISH = mean(FISH.conc.mn),
 #            sd.FISH =se(FISH.conc.mn))-> SAR202_sum
 
-wilcox.test(SAR202_sum[SAR202_sum$Region == "EGC",]$FISH.conc.mn,
+test10 <- wilcox.test(SAR202_sum[SAR202_sum$Region == "EGC",]$FISH.conc.mn,
             SAR202_sum[SAR202_sum$Region == "N",]$FISH.conc.mn)
 
-wilcox.test(SAR202_sum[SAR202_sum$Region == "EGC",]$FISH.conc.mn,
+p.adjust(test10$p.value, method = "bonferroni")
+
+test11 <- wilcox.test(SAR202_sum[SAR202_sum$Region == "EGC",]$FISH.conc.mn,
             SAR202_sum[SAR202_sum$Region == "WSC",]$FISH.conc.mn)
 
-wilcox.test(SAR202_sum[SAR202_sum$Region == "N",]$FISH.conc.mn,
+p.adjust(test11$p.value, method = "bonferroni")
+
+test12 <- wilcox.test(SAR202_sum[SAR202_sum$Region == "N",]$FISH.conc.mn,
             SAR202_sum[SAR202_sum$Region == "WSC",]$FISH.conc.mn)
+
+p.adjust(test12$p.value, method = "bonferroni")
 
 ```
 
-## Significance of depht DAPI between regions
+## Significance of depth DAPI between regions
 
 ```{r sigDAPIReg}
 counts_all%>% 
@@ -164,14 +192,20 @@ counts_all%>%
   #summarise(mean.DAPI = mean(DAPI.conc.mn),
   #          sd.dapi =se(DAPI.conc.mn))
 
-wilcox.test(DAPI_sum_srf[DAPI_sum_srf$Region == "WSC",]$DAPI.conc.mn,
+test13 <- wilcox.test(DAPI_sum_srf[DAPI_sum_srf$Region == "WSC",]$DAPI.conc.mn,
             DAPI_sum_srf[DAPI_sum_srf$Region == "N",]$DAPI.conc.mn)
 
-wilcox.test(DAPI_sum_srf[DAPI_sum_srf$Region == "EGC",]$DAPI.conc.mn,
+p.adjust(test13$p.value, method = "bonferroni")
+
+test14 <- wilcox.test(DAPI_sum_srf[DAPI_sum_srf$Region == "EGC",]$DAPI.conc.mn,
             DAPI_sum_srf[DAPI_sum_srf$Region == "N",]$DAPI.conc.mn)
 
-wilcox.test(DAPI_sum_srf[DAPI_sum_srf$Region == "WSC",]$DAPI.conc.mn,
+p.adjust(test14$p.value, method = "bonferroni")
+
+test15 <- wilcox.test(DAPI_sum_srf[DAPI_sum_srf$Region == "WSC",]$DAPI.conc.mn,
             DAPI_sum_srf[DAPI_sum_srf$Region == "EGC",]$DAPI.conc.mn)
+
+p.adjust(test15$p.value, method = "bonferroni")
 
 ```
 
@@ -249,4 +283,7 @@ counts_all%>%
 #write.csv(FISH_proportion, file="~/CARD-FISH/CARD-FISH_water_project/cell_prortions.csv")
 ```  
  
- 
+## Save image
+```{r save2}
+save.image("Data_analysis.RData")
+```

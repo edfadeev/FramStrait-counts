@@ -31,7 +31,7 @@ calc.factor <- 99515.5458411807
 
 Data import
 ```{r im}
-raw.counts <- read.csv("../Data/FOV_all_groups_SH.csv", sep = ",", dec = ".", header = TRUE)
+raw.counts <- read.csv("FOV_all_groups_SH.csv", sep = ",", dec = ".", header = TRUE)
 ```
 
 Split sample name and remove SV2 station and ABYSS depth and calculate counts per FOV
@@ -47,9 +47,9 @@ Calculate abundances per sample and add regions
 ```{r consp}
 counts_all <-  raw.counts.SH %>% 
   filter(FISH_conc > 0) %>% 
-  mutate(Depth = ifelse(Depth %in% c("DCM"), "SRF",Depth),
-    Region = ifelse(StationName %in% c("EG1","EG4"), "EGC", 
-                         ifelse(StationName %in% c("N3","N4","N5"), "N", "WSC")),
+  mutate(Region = ifelse(StationName %in% c("EG1","EG4"), "EGC", 
+                         ifelse(StationName %in% c("N3","N4","N5"), "N", 
+                                ifelse(StationName %in% c("N3","N4","N5"), "N", "WSC"))),
          Depth = factor(Depth, levels = c("SRF","EPI","MESO","BATHY"))) %>% 
           group_by(Region, StationName, Depth, Domain) %>% 
           summarise(DAPI.conc.mn = mean(DAPI_conc),

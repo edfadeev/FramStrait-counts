@@ -11,6 +11,7 @@ output: html_document
 suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(tidyr))
 suppressPackageStartupMessages(library(ggsignif))
+suppressPackageStartupMessages(library(rcompanion))
 ```
 
 ## Load data
@@ -53,33 +54,47 @@ EUB_ARCH_coverage %>%
 ```            
             
 Siginificance tests
-```{r sig}
-wilcox.test(EUB_ARCH_coverage[EUB_ARCH_coverage$Region == "WSC",]$total.coverage,
-            EUB_ARCH_coverage[EUB_ARCH_coverage$Region == "N",]$total.coverage)
+```{r sigProp}
+EUB_ARCH_prop%>%
+  group_by(Region, StationName, Depth) -> EUB_ARCH_cov
+#  summarise(total.coverage = sum(proportion),
+#            sd.coverage = se(proportion)) -> EUB_ARCH_coverage
 
-wilcox.test(EUB_ARCH_coverage[EUB_ARCH_coverage$Region == "WSC",]$total.coverage,
-            EUB_ARCH_coverage[EUB_ARCH_coverage$Region == "EGC",]$total.coverage)
+wilcox.test(EUB_ARCH_cov[EUB_ARCH_cov$Region == "WSC",]$proportion,
+            EUB_ARCH_cov[EUB_ARCH_cov$Region == "N",]$proportion)
 
-wilcox.test(EUB_ARCH_coverage[EUB_ARCH_coverage$Region == "N",]$total.coverage,
-            EUB_ARCH_coverage[EUB_ARCH_coverage$Region == "EGC",]$total.coverage)
+wilcox.test(EUB_ARCH_cov[EUB_ARCH_cov$Region == "WSC",]$proportion,
+            EUB_ARCH_cov[EUB_ARCH_cov$Region == "EGC",]$proportion)
+
+wilcox.test(EUB_ARCH_cov[EUB_ARCH_cov$Region == "N",]$proportion,
+            EUB_ARCH_cov[EUB_ARCH_cov$Region == "EGC",]$proportion)
 ```  
 
 ## Significance of DAPI  with depth
 
 ```{r sigDAPIDpth}
 counts_all%>% 
-  group_by(Region, StationName, Depth) %>% 
-  summarise(mean.DAPI = mean(DAPI.conc.mn),
-            sd.dapi =se(DAPI.conc.mn))-> DAPI_sum
+  group_by(Region, StationName, Depth) -> DAPI_sum 
+#  summarise(mean.DAPI = mean(DAPI.conc.mn),
+#            sd.dapi =se(DAPI.conc.mn))-> DAPI_sum
 
-wilcox.test(DAPI_sum[DAPI_sum$Depth == "SRF",]$mean.DAPI,
-            DAPI_sum[DAPI_sum$Depth == "EPI",]$mean.DAPI)
+wilcox.test(DAPI_sum[DAPI_sum$Depth == "SRF",]$DAPI.conc.mn,
+            DAPI_sum[DAPI_sum$Depth == "EPI",]$DAPI.conc.mn)
 
-wilcox.test(DAPI_sum[DAPI_sum$Depth == "EPI",]$mean.DAPI,
-            DAPI_sum[DAPI_sum$Depth == "MESO",]$mean.DAPI)
+wilcoxonZ(DAPI_sum[DAPI_sum$Depth == "SRF",]$DAPI.conc.mn, #Calculates the z statistic 
+            DAPI_sum[DAPI_sum$Depth == "EPI",]$DAPI.conc.mn,digits=4)
 
-wilcox.test(DAPI_sum[DAPI_sum$Depth == "MESO",]$mean.DAPI,
-            DAPI_sum[DAPI_sum$Depth == "BATHY",]$mean.DAPI)
+wilcox.test(DAPI_sum[DAPI_sum$Depth == "EPI",]$DAPI.conc.mn,
+            DAPI_sum[DAPI_sum$Depth == "MESO",]$DAPI.conc.mn)
+
+wilcoxonZ(DAPI_sum[DAPI_sum$Depth == "EPI",]$DAPI.conc.mn, #Calculates the z statistic 
+            DAPI_sum[DAPI_sum$Depth == "MESO",]$DAPI.conc.mn,digits=4)
+
+wilcox.test(DAPI_sum[DAPI_sum$Depth == "MESO",]$DAPI.conc.mn,
+            DAPI_sum[DAPI_sum$Depth == "BATHY",]$DAPI.conc.mn)
+
+wilcoxonZ(DAPI_sum[DAPI_sum$Depth == "MESO",]$DAPI.conc.mn, #Calculates the z statistic 
+            DAPI_sum[DAPI_sum$Depth == "BATHY",]$DAPI.conc.mn,digits=4)
 ``` 
 
 ```{r sumDAPIDpth}
@@ -90,23 +105,32 @@ DAPI_sum %>%
 
 ```
 
-## Significance of Bacteria with depth
+## Significance of Bacteria/Archaea with depth
 
 ```{r sigBACIDpth}
 counts_all%>% 
-  filter(Domain %in% c("EUB"))%>%
-  group_by(Region, StationName, Depth) %>% 
-  summarise(mean.FISH = mean(FISH.conc.mn),
-            sd.FISH =se(FISH.conc.mn))-> EUB_sum
+  filter(Domain %in% c("EUB"))%>% #change for ARCH
+  group_by(Region, StationName, Depth) -> EUB_sum
+#  summarise(mean.FISH = mean(FISH.conc.mn),
+#            sd.FISH =se(FISH.conc.mn))-> EUB_sum
 
-wilcox.test(EUB_sum[EUB_sum$Depth == "SRF",]$mean.FISH,
-            EUB_sum[EUB_sum$Depth == "EPI",]$mean.FISH)
+wilcox.test(EUB_sum[EUB_sum$Depth == "SRF",]$FISH.conc.mn,
+            EUB_sum[EUB_sum$Depth == "EPI",]$FISH.conc.mn)
 
-wilcox.test(EUB_sum[EUB_sum$Depth == "EPI",]$mean.FISH,
-            EUB_sum[EUB_sum$Depth == "MESO",]$mean.FISH)
+wilcoxonZ(EUB_sum[EUB_sum$Depth == "SRF",]$FISH.conc.mn,
+            EUB_sum[EUB_sum$Depth == "EPI",]$FISH.conc.mn, digits = 4)
 
-wilcox.test(EUB_sum[EUB_sum$Depth == "MESO",]$mean.FISH,
-            EUB_sum[EUB_sum$Depth == "BATHY",]$mean.FISH)
+wilcox.test(EUB_sum[EUB_sum$Depth == "EPI",]$FISH.conc.mn,
+            EUB_sum[EUB_sum$Depth == "MESO",]$FISH.conc.mn)
+
+wilcoxonZ(EUB_sum[EUB_sum$Depth == "EPI",]$FISH.conc.mn,
+            EUB_sum[EUB_sum$Depth == "MESO",]$FISH.conc.mn, digits = 4)
+
+wilcox.test(EUB_sum[EUB_sum$Depth == "MESO",]$FISH.conc.mn,
+            EUB_sum[EUB_sum$Depth == "BATHY",]$FISH.conc.mn)
+
+wilcoxonZ(EUB_sum[EUB_sum$Depth == "MESO",]$FISH.conc.mn,
+            EUB_sum[EUB_sum$Depth == "BATHY",]$FISH.conc.mn, digits = 4)
 ```
 
 ## Significance of groups between the regions 
@@ -114,34 +138,41 @@ wilcox.test(EUB_sum[EUB_sum$Depth == "MESO",]$mean.FISH,
 Change Domain to see different groups
 ```{r sigGrReg}
 counts_all%>% 
-  filter(Domain %in% c("SAR202"))%>%
-  filter(Depth %in% c("SRF"))%>% 
-  group_by(Region, StationName, Depth) %>% 
-  summarise(mean.FISH = mean(FISH.conc.mn),
-            sd.FISH =se(FISH.conc.mn))-> EUB_sum
+  filter(Domain %in% c("SAR202"))%>% #change domain for different groups
+  filter(Depth %in% c("SRF"))%>%  #change here for different depths
+  group_by(Region, StationName, Depth) -> SAR202_sum 
+#  summarise(mean.FISH = mean(FISH.conc.mn),
+#            sd.FISH =se(FISH.conc.mn))-> SAR202_sum
 
-wilcox.test(EUB_sum[EUB_sum$Region == "EGC",]$mean.FISH,
-            EUB_sum[EUB_sum$Region == "N",]$mean.FISH)
+wilcox.test(SAR202_sum[SAR202_sum$Region == "EGC",]$FISH.conc.mn,
+            SAR202_sum[SAR202_sum$Region == "N",]$FISH.conc.mn)
 
-wilcox.test(EUB_sum[EUB_sum$Region == "EGC",]$mean.FISH,
-            EUB_sum[EUB_sum$Region == "WSC",]$mean.FISH)
+wilcox.test(SAR202_sum[SAR202_sum$Region == "EGC",]$FISH.conc.mn,
+            SAR202_sum[SAR202_sum$Region == "WSC",]$FISH.conc.mn)
 
-wilcox.test(EUB_sum[EUB_sum$Region == "N",]$mean.FISH,
-            EUB_sum[EUB_sum$Region == "WSC",]$mean.FISH)
+wilcox.test(SAR202_sum[SAR202_sum$Region == "N",]$FISH.conc.mn,
+            SAR202_sum[SAR202_sum$Region == "WSC",]$FISH.conc.mn)
+
 ```
 
-## Significance of deep DAPI between regions
+## Significance of depht DAPI between regions
 
 ```{r sigDAPIReg}
 counts_all%>% 
   filter(Depth %in% c("SRF"))%>%
-  group_by(Region, StationName, Depth) -> DAPI_sum_meso
+  group_by(Region, StationName, Depth) -> DAPI_sum_srf 
+  #summarise(mean.DAPI = mean(DAPI.conc.mn),
+  #          sd.dapi =se(DAPI.conc.mn))
 
-#%>% summarise(mean.DAPI = mean(DAPI.conc.mn),
-#            sd.dapi =se(DAPI.conc.mn))-> DAPI_sum_meso
+wilcox.test(DAPI_sum_srf[DAPI_sum_srf$Region == "WSC",]$DAPI.conc.mn,
+            DAPI_sum_srf[DAPI_sum_srf$Region == "N",]$DAPI.conc.mn)
 
-wilcox.test(DAPI_sum_meso[DAPI_sum_meso$Region == "N",]$DAPI.conc.mn,
-            DAPI_sum_meso[DAPI_sum_meso$Region =="WSC",]$DAPI.conc.mn)
+wilcox.test(DAPI_sum_srf[DAPI_sum_srf$Region == "EGC",]$DAPI.conc.mn,
+            DAPI_sum_srf[DAPI_sum_srf$Region == "N",]$DAPI.conc.mn)
+
+wilcox.test(DAPI_sum_srf[DAPI_sum_srf$Region == "WSC",]$DAPI.conc.mn,
+            DAPI_sum_srf[DAPI_sum_srf$Region == "EGC",]$DAPI.conc.mn)
+
 ```
 
 ## Overview of phylogenetic group abundances by regions
@@ -149,7 +180,7 @@ wilcox.test(DAPI_sum_meso[DAPI_sum_meso$Region == "N",]$DAPI.conc.mn,
 Calculate abundance in surface by region
 ```{r FISH}
 counts_all%>% 
-  filter(Depth == "SRF")%>%
+  filter(Depth == "EPI")%>%
   group_by(Region, Domain) %>%
   summarise(mean.abund = mean(FISH.conc.mn),
             se.abund = se(FISH.conc.mn),

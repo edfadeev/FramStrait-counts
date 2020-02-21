@@ -31,7 +31,7 @@ calc.factor <- 99515.5458411807
 
 Data import
 ```{r im}
-raw.counts <- read.csv("FOV_all_groups_SH.csv", sep = ",", dec = ".", header = TRUE)
+raw.counts <- read.csv("../Data/FOV_all_groups_SH.csv", sep = ",", dec = ".", header = TRUE)
 ```
 
 Split sample name and remove SV2 station and ABYSS depth and calculate counts per FOV

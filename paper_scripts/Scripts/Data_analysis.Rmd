@@ -19,62 +19,7 @@ suppressPackageStartupMessages(library(rcompanion))
 load("Abundances.RData")
 ```
 
-## Check the coverage of Bacteria and Archaea probes in comparison to DAPI
-
-Coverage by probes
-```{r covEA}
-counts_all%>% 
-  filter(Domain %in% c("EUB","ARCH"))%>%
-  group_by(Region, StationName, Depth, Domain) %>% 
-  summarise(proportion = FISH.conc.mn/DAPI.conc.mn)-> EUB_ARCH_prop
-```
-
-Total coverage
-```{r covT}
-EUB_ARCH_prop%>%
-  group_by(Region, StationName, Depth) %>% 
-  summarise(total.coverage = sum(proportion),
-            sd.coverage = se(proportion)) -> EUB_ARCH_coverage
-```
-
-By regions
-```{r covR}
-EUB_ARCH_coverage %>%
-  group_by(Region, Depth) %>% 
-  summarise(mean.coverage = mean(total.coverage),
-            sd.coverage = se(total.coverage)) -> EUB_ARCH_coverage_by_region
-```
-
-Proportions by depth
-```{r covD}
-EUB_ARCH_coverage %>%
-  group_by(Depth) %>% 
-  summarise(mean.coverage = mean(total.coverage),
-            sd.coverage = se(total.coverage)) -> EUB_ARCH_coverage_by_depth
-```            
-            
-Siginificance tests
-```{r sigProp}
-EUB_ARCH_prop%>%
-  group_by(Region, StationName, Depth) -> EUB_ARCH_cov
-#  summarise(total.coverage = sum(proportion),
-#            sd.coverage = se(proportion)) -> EUB_ARCH_coverage
-
-test <- wilcox.test(EUB_ARCH_cov[EUB_ARCH_cov$Region == "WSC",]$proportion,
-            EUB_ARCH_cov[EUB_ARCH_cov$Region == "N",]$proportion)
-
-p.adjust(test$p.value, method = "bonferroni")
-
-test2 <- wilcox.test(EUB_ARCH_cov[EUB_ARCH_cov$Region == "WSC",]$proportion,
-            EUB_ARCH_cov[EUB_ARCH_cov$Region == "EGC",]$proportion)
-
-p.adjust(test2$p.value, method = "bonferroni")
-
-test3 <- wilcox.test(EUB_ARCH_cov[EUB_ARCH_cov$Region == "N",]$proportion,
-            EUB_ARCH_cov[EUB_ARCH_cov$Region == "EGC",]$proportion)
-
-p.adjust(test3$p.value, method = "bonferroni")
-```  
+### Bacterioplankton communities strongly change in cell abundance and composition with depth
 
 ## Significance of DAPI  with depth
 
@@ -125,69 +70,134 @@ DAPI_sum_R %>%
 
 ```{r sigBACIDpth}
 counts_all%>% 
-  filter(Domain %in% c("EUB"))%>% #change for ARCH
-  group_by(Region, StationName, Depth) -> EUB_sum
+  filter(Domain %in% c("ARCH"))%>% #change for other groups
+  group_by(Region, StationName, Depth) -> ARCH_sum
 #  summarise(mean.FISH = mean(FISH.conc.mn),
 #            sd.FISH =se(FISH.conc.mn))-> EUB_sum
 
-test7 <- wilcox.test(EUB_sum[EUB_sum$Depth == "SRF",]$FISH.conc.mn,
-            EUB_sum[EUB_sum$Depth == "EPI",]$FISH.conc.mn)
+test7 <- wilcox.test(ARCH_sum[ARCH_sum$Depth == "SRF",]$FISH.conc.mn,
+            ARCH_sum[ARCH_sum$Depth == "EPI",]$FISH.conc.mn)
 
 p.adjust(test7$p.value, method = "bonferroni")
 
-wilcoxonZ(EUB_sum[EUB_sum$Depth == "SRF",]$FISH.conc.mn,
-            EUB_sum[EUB_sum$Depth == "EPI",]$FISH.conc.mn, digits = 4)
+wilcoxonZ(ARCH_sum[ARCH_sum$Depth == "SRF",]$FISH.conc.mn,
+            ARCH_sum[ARCH_sum$Depth == "EPI",]$FISH.conc.mn, digits = 4)
 
-test8 <- wilcox.test(EUB_sum[EUB_sum$Depth == "EPI",]$FISH.conc.mn,
-            EUB_sum[EUB_sum$Depth == "MESO",]$FISH.conc.mn)
+test8 <- wilcox.test(ARCH_sum[ARCH_sum$Depth == "EPI",]$FISH.conc.mn,
+            ARCH_sum[ARCH_sum$Depth == "MESO",]$FISH.conc.mn)
 
 p.adjust(test8$p.value, method = "bonferroni")
 
-wilcoxonZ(EUB_sum[EUB_sum$Depth == "EPI",]$FISH.conc.mn,
-            EUB_sum[EUB_sum$Depth == "MESO",]$FISH.conc.mn, digits = 4)
+wilcoxonZ(ARCH_sum[ARCH_sum$Depth == "EPI",]$FISH.conc.mn,
+            ARCH_sum[ARCH_sum$Depth == "MESO",]$FISH.conc.mn, digits = 4)
 
-test9 <- wilcox.test(EUB_sum[EUB_sum$Depth == "MESO",]$FISH.conc.mn,
-            EUB_sum[EUB_sum$Depth == "BATHY",]$FISH.conc.mn)
+test9 <- wilcox.test(ARCH_sum[ARCH_sum$Depth == "MESO",]$FISH.conc.mn,
+            ARCH_sum[ARCH_sum$Depth == "BATHY",]$FISH.conc.mn)
 
 p.adjust(test9$p.value, method = "bonferroni")
 
-wilcoxonZ(EUB_sum[EUB_sum$Depth == "MESO",]$FISH.conc.mn,
-            EUB_sum[EUB_sum$Depth == "BATHY",]$FISH.conc.mn, digits = 4)
+wilcoxonZ(ARCH_sum[ARCH_sum$Depth == "MESO",]$FISH.conc.mn,
+            ARCH_sum[ARCH_sum$Depth == "BATHY",]$FISH.conc.mn, digits = 4)
 ```
 
-## Significance of groups between the regions 
 
-Change Domain to see different groups
-```{r sigGrReg}
+## Check the coverage of Bacteria and Archaea probes in comparison to DAPI
+
+Coverage by probes
+```{r covEA}
 counts_all%>% 
-  filter(Domain %in% c("SAR202"))%>% #change domain for different groups
-  filter(Depth %in% c("SRF"))%>%  #change here for different depths
-  group_by(Region, StationName, Depth) -> SAR202_sum 
-#  summarise(mean.FISH = mean(FISH.conc.mn),
-#            sd.FISH =se(FISH.conc.mn))-> SAR202_sum
-
-test10 <- wilcox.test(SAR202_sum[SAR202_sum$Region == "EGC",]$FISH.conc.mn,
-            SAR202_sum[SAR202_sum$Region == "N",]$FISH.conc.mn)
-
-p.adjust(test10$p.value, method = "bonferroni")
-
-test11 <- wilcox.test(SAR202_sum[SAR202_sum$Region == "EGC",]$FISH.conc.mn,
-            SAR202_sum[SAR202_sum$Region == "WSC",]$FISH.conc.mn)
-
-p.adjust(test11$p.value, method = "bonferroni")
-
-test12 <- wilcox.test(SAR202_sum[SAR202_sum$Region == "N",]$FISH.conc.mn,
-            SAR202_sum[SAR202_sum$Region == "WSC",]$FISH.conc.mn)
-
-p.adjust(test12$p.value, method = "bonferroni")
-
+  filter(Domain %in% c("EUB","ARCH"))%>%
+  group_by(Region, StationName, Depth, Domain) %>% 
+  summarise(proportion = FISH.conc.mn/DAPI.conc.mn)-> EUB_ARCH_prop
 ```
 
-## Significance of depth DAPI between regions
+Total coverage
+```{r covT}
+EUB_ARCH_prop%>%
+  group_by(Region, StationName, Depth) %>% 
+  summarise(total.coverage = sum(proportion),
+            sd.coverage = se(proportion)) -> EUB_ARCH_coverage
+```
+
+By regions
+```{r covR}
+EUB_ARCH_coverage %>%
+  group_by(Region, Depth) %>% 
+  summarise(mean.coverage = mean(total.coverage),
+            sd.coverage = se(total.coverage)) -> EUB_ARCH_coverage_by_region
+```
+
+Proportions by depth
+```{r covD}
+EUB_ARCH_coverage %>%
+  group_by(Depth) %>% 
+  summarise(mean.coverage = mean(total.coverage),
+            sd.coverage = se(total.coverage)) -> EUB_ARCH_coverage_by_depth
+```            
+            
+## Siginificance tests proportions of Bacteria and Archaea by region (surface)
+```{r sigProp}
+EUB_ARCH_prop %>%
+  filter(Domain %in% c("ARCH")) %>% #change here for EUB Bacteria
+  filter(Depth %in% c("SRF"))%>%
+  group_by(Region, StationName, Depth) -> ARCH_srf_cov
+#  summarise(total.coverage = sum(proportion),
+#            sd.coverage = se(proportion)) -> EUB_ARCH_coverage
+
+test <- wilcox.test(ARCH_srf_cov[ARCH_srf_cov$Region == "WSC",]$proportion,
+            ARCH_srf_cov[ARCH_srf_cov$Region == "N",]$proportion)
+
+p.adjust(test$p.value, method = "bonferroni")
+
+test2 <- wilcox.test(ARCH_srf_cov[ARCH_srf_cov$Region == "WSC",]$proportion,
+            ARCH_srf_cov[ARCH_srf_cov$Region == "EGC",]$proportion)
+
+p.adjust(test2$p.value, method = "bonferroni")
+
+test3 <- wilcox.test(ARCH_srf_cov[ARCH_srf_cov$Region == "N",]$proportion,
+            ARCH_srf_cov[ARCH_srf_cov$Region == "EGC",]$proportion)
+
+p.adjust(test3$p.value, method = "bonferroni")
+```  
+## Significance of proportions by depth Bacteria Achaea
+
+```{r sigPropDepth}
+EUB_ARCH_prop %>%
+  filter(Domain %in% c("ARCH")) %>% #change here for EUB Bacteria
+  group_by(Region, StationName, Depth) -> ARCH_sum_prop
+
+test7 <- wilcox.test(ARCH_sum_prop[ARCH_sum_prop$Depth == "SRF",]$proportion,
+            ARCH_sum_prop[ARCH_sum_prop$Depth == "EPI",]$proportion)
+
+p.adjust(test7$p.value, method = "bonferroni")
+
+wilcoxonZ(ARCH_sum_prop[ARCH_sum_prop$Depth == "SRF",]$proportion,
+            ARCH_sum_prop[ARCH_sum_prop$Depth == "EPI",]$proportion, digits = 4)
+
+test8 <- wilcox.test(ARCH_sum_prop[ARCH_sum_prop$Depth == "EPI",]$proportion,
+            ARCH_sum_prop[ARCH_sum_prop$Depth == "MESO",]$proportion)
+
+p.adjust(test8$p.value, method = "bonferroni")
+
+wilcoxonZ(ARCH_sum_prop[ARCH_sum_prop$Depth == "EPI",]$proportion,
+            ARCH_sum_prop[ARCH_sum_prop$Depth == "MESO",]$proportion, digits = 4)
+
+test9 <- wilcox.test(ARCH_sum_prop[ARCH_sum_prop$Depth == "MESO",]$proportion,
+            ARCH_sum_prop[ARCH_sum_prop$Depth == "BATHY",]$proportion)
+
+p.adjust(test9$p.value, method = "bonferroni")
+
+wilcoxonZ(ARCH_sum_prop[ARCH_sum_prop$Depth == "MESO",]$proportion,
+            ARCH_sum_prop[ARCH_sum_prop$Depth == "BATHY",]$proportion, digits = 4)
+```
+
+### Surface water bacterioplankton communities are affected by distinct phytoplankton bloom conditions across the Fram Strait 
+
+## Significance of surface DAPI between regions
 
 ```{r sigDAPIReg}
 counts_all%>% 
-  filter(Depth %in% c("SRF"))%>%
+  filter(Depth %in% c("SRF"))%>% #change here to test other depths
   group_by(Region, StationName, Depth) -> DAPI_sum_srf 
   #summarise(mean.DAPI = mean(DAPI.conc.mn),
   #          sd.dapi =se(DAPI.conc.mn))
@@ -208,6 +218,36 @@ test15 <- wilcox.test(DAPI_sum_srf[DAPI_sum_srf$Region == "WSC",]$DAPI.conc.mn,
 p.adjust(test15$p.value, method = "bonferroni")
 
 ```
+
+## Significance of groups between the regions 
+
+Change Domain to see different groups
+```{r sigGrReg}
+counts_all%>% 
+  filter(Domain %in% c("SAR11"))%>% #change here for Bacteroidia, Gammaproteobacteria and verrucomicrobia, Deltaproteobacteria and Thaumarcheota
+  filter(Depth %in% c("SRF"))%>%  
+  group_by(Region, StationName, Depth) -> SAR11_sum 
+#  summarise(mean.FISH = mean(FISH.conc.mn),
+#            sd.FISH =se(FISH.conc.mn))-> SAR202_sum
+
+test10 <- wilcox.test(SAR11_sum[SAR11_sum$Region == "EGC",]$FISH.conc.mn,
+            SAR11_sum[SAR11_sum$Region == "N",]$FISH.conc.mn)
+
+p.adjust(test10$p.value, method = "bonferroni")
+
+test11 <- wilcox.test(SAR11_sum[SAR11_sum$Region == "EGC",]$FISH.conc.mn,
+            SAR11_sum[SAR11_sum$Region == "WSC",]$FISH.conc.mn)
+
+p.adjust(test11$p.value, method = "bonferroni")
+
+test12 <- wilcox.test(SAR11_sum[SAR11_sum$Region == "N",]$FISH.conc.mn,
+            SAR11_sum[SAR11_sum$Region == "WSC",]$FISH.conc.mn)
+
+p.adjust(test12$p.value, method = "bonferroni")
+
+```
+
+
 
 ## Overview of phylogenetic group abundances by regions
 

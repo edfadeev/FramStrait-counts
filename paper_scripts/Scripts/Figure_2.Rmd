@@ -26,8 +26,8 @@ DAPI_vertical_boxplot <- ggplot(counts_all, aes(x= Region, y = DAPI.conc.mn))+
   geom_boxplot(aes(fill = Region))+
   facet_grid(Depth~.)+
   geom_jitter(aes(x= Region, y = DAPI.conc.mn),width = 0.2, alpha = 0.3)+
-  #geom_signif(comparisons = list(c("EGC", "WSC"),c("EGC","N"),c("N","WSC")), 
-  #            map_signif_level=TRUE, test = "wilcox.test")+
+  geom_signif(comparisons = list(c("EGC", "WSC"),c("EGC","N"),c("N","WSC")), 
+              map_signif_level=TRUE, test = "wilcox.test")+
   scale_y_log10(name = "cell concentration (cells/mL)")+
   scale_fill_manual(values=c("WSC" = "red", "EGC" = "blue", "N" = "gray")) +
   theme_bw()+
@@ -44,8 +44,8 @@ for (i in c("EUB","ARCH")){
     geom_boxplot(aes(fill = Region))+
     facet_grid(Depth~.)+
     geom_jitter(aes(x= Region, y = FISH.conc.mn),width = 0.2, alpha = 0.3)+
-    #geom_signif(comparisons = list(c("EGC", "WSC"),c("EGC","N"),c("N","WSC")), 
-    #            map_signif_level=TRUE, test = "wilcox.test")+
+    geom_signif(comparisons = list(c("EGC", "WSC"),c("EGC","N"),c("N","WSC")), 
+                map_signif_level=TRUE, test = "wilcox.test")+
     scale_y_log10(name = "cell abundance (cells/mL)")+
     scale_fill_manual(values=c("WSC" = "red", "EGC" = "blue", "N" = "gray")) +
     theme_bw()+
@@ -54,6 +54,9 @@ for (i in c("EUB","ARCH")){
 }
 
 plot_grid(DAPI_vertical_boxplot, p[["EUB"]],p[["ARCH"]], ncol =3, labels = "auto")
+
+dev.copy2eps(device= postscript, file ="./Figure-2.eps")
+dev.off()
 
 ```
 

@@ -407,7 +407,7 @@ write.csv(corr_rho, "./corr_table.csv")
 ```
 
 
-```{r vert-prof}
+```{r vert-corr}
 ##################################
 # Depth profiles by taxa 
 ##################################
@@ -448,6 +448,16 @@ depth_corr %>%
 ```
 
 
+
+```{r vert-prof}
+counts_all %>% group_by(Domain) %>% kruskal_test(FISH.conc.mn~Depth)
+
+Region_FISH_prop_Wilcox <- counts_all   %>%
+  group_by(Domain)%>%
+  rstatix::wilcox_test(FISH.conc.mn~Depth) %>%
+  adjust_pvalue(method = "BH")%>%
+  add_significance()
+```
  
 ## Save image
 ```{r save2}

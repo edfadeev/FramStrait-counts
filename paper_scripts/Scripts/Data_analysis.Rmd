@@ -145,8 +145,8 @@ Total coverage
 ```{r covT}
 EUB_ARCH_prop%>%
   group_by(Region, StationName, Depth) %>% 
-  summarise(total.coverage = sum(proportion),
-            sd.coverage = sd(proportion)) -> EUB_ARCH_coverage
+  summarise(total.coverage = sum(Total.prop),
+            sd.coverage = sd(Total.prop)) -> EUB_ARCH_coverage
 ```
 
 By regions
@@ -195,9 +195,9 @@ Region_FISH_srf_Wilcox <- DAPI_sum_srf   %>%
   rstatix::wilcox_test(FISH.conc.mn ~ Region, p.adjust.method = "BH") %>%
   add_significance()
 
-Region_FISH_srf_Wilcox <- filter(Region_FISH_srf_Wilcox, p.adj < 0.01)
+Region_FISH_srf_Wilcox_sig <- filter(Region_FISH_srf_Wilcox, p.adj < 0.01)
 
-Region_srf_Wilcox_sig
+Region_FISH_srf_Wilcox_sig
 ```
 
 

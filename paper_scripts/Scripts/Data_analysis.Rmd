@@ -17,6 +17,7 @@ library(kableExtra);packageVersion("kableExtra")
 library(cowplot);packageVersion("cowplot")
 library(broom);packageVersion("broom")
 library(tidyverse);packageVersion("tidyverse")
+library(tidyverse);packageVersion("ggpubr")
 ```
 
 ## Import data
@@ -123,17 +124,25 @@ counts_all %>%
 
 Plot
 ```{r ptVER}
+depth_names <- c(`SRF` = "surface (15-30m)",
+                 `EPI` = "epipelagic (100m)",
+                 `MESO` = "mesopelagic (500-1000m)",
+                 `BATHY` = "bathypelagic (>1200m)")
+
 DAPI_vertical_boxplot <- ggplot(counts_all, aes(x= Region, y = DAPI.conc.mn))+
   geom_boxplot(aes(fill = Region))+
-  facet_grid(Depth~.)+
+  facet_grid(Depth~.,labeller = as_labeller(depth_names))+
   geom_jitter(aes(x= Region, y = DAPI.conc.mn),width = 0.2, alpha = 0.3)+
-  geom_signif(comparisons = list(c("EGC", "WSC"),c("EGC","N"),c("N","WSC")), 
-              map_signif_level=TRUE, test = "wilcox.test")+
-  scale_y_log10(name = "cell abundance (cells/mL)")+
+#  geom_signif(comparisons = list(c("EGC", "WSC"),c("EGC","N"),c("N","WSC")), 
+#              map_signif_level=TRUE, test = "wilcox.test")+
+  scale_y_log10()+
+  ylab(bquote('Cell abundance ('*cells ~mL^-1*')'))+
   scale_fill_manual(values=c("WSC" = "red", "EGC" = "blue", "N" = "gray")) +
   theme_bw()+
-  coord_flip()+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),legend.position = "none")
+  xlab("")+
+ # coord_flip()+
+  scale_x_discrete(position = "top")+ 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),legend.position = "none",strip.background =element_rect(fill="white"))
 
 counts_all%>% 
   filter(Domain %in% c("EUB","ARCH"))%>%
@@ -143,18 +152,57 @@ p <- list()
 for (i in c("EUB","ARCH")){
   p[[i]] <-  ggplot(counts_all[counts_all$Domain== i,], aes(x= Region, y = FISH.conc.mn))+
     geom_boxplot(aes(fill = Region))+
-    facet_grid(Depth~.)+
+    facet_grid(Depth~.,labeller = as_labeller(depth_names))+
     geom_jitter(aes(x= Region, y = FISH.conc.mn),width = 0.2, alpha = 0.3)+
-    geom_signif(comparisons = list(c("EGC", "WSC"),c("EGC","N"),c("N","WSC")), 
-                map_signif_level=TRUE, test = "wilcox.test")+ # significance by region
-    scale_y_log10(name = "cell abundance (cells/mL)")+
+#    geom_signif(comparisons = list(c("EGC", "WSC"),c("EGC","N"),c("N","WSC")), 
+#                map_signif_level=TRUE, test = "wilcox.test")+ # significance by region
+    scale_y_log10()+
+    ylab("")+
+    xlab("")+
+    #ylab(bquote('Cell abundance ('*cells ~mL^-1*')'))+
     scale_fill_manual(values=c("WSC" = "red", "EGC" = "blue", "N" = "gray")) +
     theme_bw()+
-    coord_flip()+
-    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),legend.position = "none")
+#    coord_flip()+
+    scale_x_discrete(position = "top")+ 
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),legend.position = "none",strip.background =element_rect(fill="white"))
 }
 
-plot_grid(DAPI_vertical_boxplot, p[["EUB"]],p[["ARCH"]], ncol =3, labels = "auto")
+x <- plot_grid(DAPI_vertical_boxplot, p[["EUB"]],p[["ARCH"]], ncol =3, labels = "auto")
+x
+#tiff("test.tiff", units="cm", width=19, height=17, res=800)
+#plot_grid(DAPI_vertical_boxplot, p[["EUB"]],p[["ARCH"]], ncol =3, labels = "auto")
+#dev.off()
+```
+
+Barplot surface counts
+```{r barplot}
+taxa_sur_names <- c(`SAR11` = "SAR11 clade",
+                 `ROS` = "Rhodobacteraceae",
+                 `GAM` = "Gammaproteobacteria",
+                 `ALT` = "Alteromonadaceae/Colwelliaceae/Pseudoalteromonadaceae",
+                 `BACT` = "Bacteroidetes",
+                 `POL` = "Polaribacter",
+                 `VER` = "Verrucomicrobiales",
+                 `OPI` = "Opitutales")
+
+taxa.sur <- c("SAR11","ROS","GAM","ALT","BACT","POL","VER","OPI")
+counts_taxa.sur <- counts_all[counts_all$Domain %in% taxa.sur, ]
+counts_Sur <- subset(counts_taxa.sur, Depth == "SRF")
+counts_Sur$Domain <- factor(counts_Sur$Domain, levels = c("SAR11","ROS","GAM","ALT","BACT","POL","VER","OPI"))
+
+barplot <- ggplot(counts_Sur, aes(x= StationName, y = FISH.conc.mn, fill = Region))+
+  geom_bar(stat = "identity", colour="black")+
+  scale_fill_manual(values=c("WSC" = "red", "EGC" = "blue", "N" = "gray")) +
+  ylab(bquote('Cell abundance ('*cells ~mL^-1*')'))+
+  xlab("")+
+  facet_wrap(~ Domain,scales = "free_x", ncol=2,labeller = as_labeller(taxa_sur_names))+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),legend.position = "none",strip.background =element_rect(fill="white"))
+barplot
+
+#tiff("Figure-3-surface_counts.tiff", units="cm", width=20, height=23, res=800)
+#barplot
+#dev.off() 
 ```
 
 ## Coverage of Bacteria and Archaea probes in comparison to DAPI
@@ -335,6 +383,44 @@ surface_FISH_proportion%>%
              se.prop = sd(proportion)) -> surface_FISH_proportion_by_regions
 ```
 
+Depth profiles
+```{r plot2}
+taxa.de <- c("CREN","SAR406","DELTA","SAR324","CFX","SAR202")
+counts_taxa.de <- FISH_abundances_by_region[FISH_abundances_by_region$Domain %in% taxa.de, ]
+counts_taxa.de$Depth<- factor(counts_taxa.de$Depth, 
+                        levels = rev(c("SRF", "EPI", "MESO", "BATHY")))
+counts_taxa.de$Domain<- factor(counts_taxa.de$Domain, 
+                        levels =c("CREN","SAR406","DELTA","SAR324","CFX","SAR202"))
+
+domain_names <- c(`CREN`="Thaumarchaeota",
+                  `SAR406`="SAR406 clade",
+                  `DELTA`="Deltaproteobacteria",
+                  `SAR324`="SAR324 clade",
+                  `CFX`="Chloroflexi",
+                  `SAR202`="SAR202 clade")
+
+
+Plot_depth_profiles.p <- ggplot(data = counts_taxa.de, aes(y = mean.abund, x = Depth))+
+  geom_line(data = counts_taxa.de, linetype=1, aes(color =Region, group=Region))+
+  facet_grid(.~Domain,labeller=labeller(Domain = domain_names))+
+  #geom_errorbarh(data = FISH_abundances_by_region, aes(xmin=mean.abund-se.abund, xmax=mean.abund+se.abund)) +
+  scale_x_discrete(labels=c("SRF"="surface (15-30m)", "EPI"="epipelagic (100m)", "MESO"="mesopelagic (500-1000m)","BATHY"="bathypelagic (>1200m)"))+
+  xlab("")+
+  scale_y_log10()+
+  ylab(bquote('Cell abundance ('*10^5*''*cells ~mL^-1*')'))+
+    coord_flip()+
+  geom_errorbar(data = counts_taxa.de, aes(ymin=mean.abund-se.abund, ymax=mean.abund+se.abund), width=0.09)+
+  geom_point(data = counts_taxa.de, aes(y = mean.abund, x = Depth),shape=21, fill="white")+
+  scale_color_manual(values=c("WSC" = "red", "EGC" = "blue", "N" = "darkgray")) +
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),legend.position = "none",strip.background =element_rect(fill="white"))
+Plot_depth_profiles.p
+
+# tiff("Figure-4-Depth_profiles.tiff", units="cm", width=33, height=9, res=800)
+# Plot_depth_profiles.p
+# dev.off() 
+```
+
 ```{r summarize_master_recyclers}
 surface_FISH_MR<- surface_FISH_proportion%>%
   mutate(Master_Rec = if_else(Domain %in% c("BACT","GAM","VER"), "yes","no"))%>%
@@ -373,26 +459,105 @@ env.par <- c("Temperature","Salinity","Chla_conc", "d.NO3.", "d.PO4.", "d.SiO3."
 metadata.scaled.SRF <- metadata.raw %>% 
   mutate_at(env.par, scale_par)%>%
   as.data.frame()
+
+#import protist counts and add to env. table
+protist.counts <- read.csv("../Data/PS99_protist_counts.csv",
+                       sep = ",", dec = ".", header = TRUE)
+
+metadata.scaled.SRF_p <- inner_join(
+  metadata.scaled.SRF[,c("StationName", "Depth.m.", "Temperature","Salinity","Chla_conc","d.NO3.","d.PO4.","d.SiO3.")], 
+  protist.counts,
+  by = "StationName")
+metadata.scaled.SRF_p$Depth.m.<- NULL
+metadata.scaled.SRF_p$Depth<- NULL
 ```
 
-Correlation test between the env. parameters and plot
+Correlation test between the env. parameters and plot (no protist included)
 ```{r envpar-selfcorr}
 set.seed(21)
 envpar_corr <- metadata.scaled.SRF %>% 
-  select(env.par)%>% 
+  select("Temperature","Salinity","Chla_conc", "d.NO3.", "d.PO4.", "d.SiO3.", "NH4")%>% 
    cor_mat(method = "pearson")
 envpar_corr
 #check the p-values
 envpar_corr.pvalues <- envpar_corr %>% cor_get_pval()
+
 #plot
-envpar_corr %>%
+if(require("ggpubr")){
+  my.palette <- get_palette("PuOr", 200)
+  envpar_corr %>%
+  cor_reorder() %>%
+  pull_lower_triangle() %>%
+  cor_plot(label = TRUE, palette = my.palette, method = "number")
+}
+
+#write output
+#write.csv(envpar_corr, "./corr_table_env_env.csv")
+#write.csv(envpar_corr.pvalues, "./p_table_env_env.csv")
+```
+
+Correlation test between the env. parameters and plot (with protist groups)
+```{r envpar-selfcorr_p}
+set.seed(22)
+envpar_corr.p <- as.data.frame(metadata.scaled.SRF_p) %>% 
+  select(-c(StationName))%>% 
+   cor_mat(method = "pearson")
+envpar_corr.p
+#check the p-values
+envpar_corr.pvalues.p <- envpar_corr.p %>% cor_get_pval()
+
+#get correlation cooficients
+corr_rho.p<- envpar_corr.p %>% select(rowname, "Diatoms", "Phaeocystis.spp","Coccolithophores","Nanoflagellates","Prorocentrum.spp","Myrionecta.rubra","Dinoflagellates","Ciliates","Tintinnids")
+#check p-values
+corr_p.p <- envpar_corr.p %>% cor_get_pval()%>% select(rowname, "Diatoms", "Phaeocystis.spp","Coccolithophores","Nanoflagellates","Prorocentrum.spp","Myrionecta.rubra","Dinoflagellates","Ciliates","Tintinnids")
+
+#plot
+envpar_corr.p %>%
   cor_reorder() %>%
   pull_lower_triangle() %>%
   cor_plot(label = TRUE)
+
+#write output
+#write.csv(corr_rho.p, "./corr_table_env_protist.csv")
+#write.csv(corr_p.p, "./p_table_env_protist.csv")
 ```
 
 Correlation between environmental parameters and cell abundances of different groups and plot
 ```{r envpar-counts-corr}
+#merge counts and env.par data
+data_4_corr.sub <- counts_all%>% 
+  filter(Depth %in% c("SRF"))%>%
+  group_by(Region, StationName, Domain)%>%
+  select(Region, StationName, Domain, FISH.conc.mn)  %>% 
+  spread(Domain, FISH.conc.mn)  %>%
+  #drop samples with no env. data
+  filter(StationName %in% metadata.scaled.SRF_p$StationName) %>% 
+  #merge counts and environmental data
+  left_join(., metadata.scaled.SRF_p, by = "StationName")
+
+#Correlation test
+set.seed(23)
+counts_env_par_corr <- as.data.frame(data_4_corr.sub) %>% 
+  select(-c(Region,StationName))%>% 
+  cor_mat(method = "pearson")
+#get correlation cooficients
+corr_rho<- counts_env_par_corr %>% select(rowname,"Temperature","Salinity","Chla_conc","d.NO3.","d.PO4.","d.SiO3.", "Diatoms", "Phaeocystis.spp","Coccolithophores","Nanoflagellates","Prorocentrum.spp","Myrionecta.rubra","Dinoflagellates","Ciliates","Tintinnids")
+#check p-values
+corr_p <- counts_env_par_corr %>% cor_get_pval()%>% select(rowname,"Temperature","Salinity","Chla_conc","d.NO3.","d.PO4.","d.SiO3.", "Diatoms", "Phaeocystis.spp","Coccolithophores","Nanoflagellates","Prorocentrum.spp","Myrionecta.rubra","Dinoflagellates","Ciliates","Tintinnids")
+
+#plot
+counts_env_par_corr %>%
+  cor_reorder() %>%
+  pull_lower_triangle() %>%
+  cor_plot(significant.level = 0.1,label = TRUE)
+
+#write output
+#write.csv(corr_rho, "./corr_table_counts_env_protist.csv")
+#write.csv(corr_p, "./p_table_counts_env_protist.csv")
+```
+
+Correlation between environmental parameters and cell abundances of different groups (no protists)
+```{r envpar-counts-corr_nop}
 #merge counts and env.par data
 data_4_corr <- counts_all%>% 
   filter(Depth %in% c("SRF"))%>%
@@ -405,24 +570,51 @@ data_4_corr <- counts_all%>%
   left_join(., metadata.scaled.SRF[,c("StationName",env.par)] , by = "StationName")
 
 #Correlation test
-set.seed(22)
-counts_env_par_corr <- as.data.frame(data_4_corr) %>% 
+set.seed(24)
+counts_env_par_corr_all <- as.data.frame(data_4_corr) %>% 
   select(-c(Region,StationName))%>% 
   cor_mat(method = "pearson")
 #get correlation cooficients
-corr_rho<- counts_env_par_corr %>% select(rowname,env.par)
+corr_rho.a<- counts_env_par_corr_all %>% select(rowname,env.par)
 #check p-values
-corr_p <- counts_env_par_corr %>% cor_get_pval()%>% select(rowname,env.par)
+corr_p.a <- counts_env_par_corr_all %>% cor_get_pval()%>% select(rowname,env.par)
 
 #plot
-counts_env_par_corr %>%
+counts_env_par_corr_all %>%
+  cor_reorder() %>%
+  pull_lower_triangle() %>%
+  cor_plot(significant.level = 0.1,label = TRUE)
+```
+
+Correlation between and cell abundances
+```{r counts-counts-corr}
+#merge counts and env.par data
+data_4_corr.c <- counts_all%>% 
+  filter(Depth %in% c("SRF"))%>%
+  group_by(Region, StationName, Domain)%>%
+  select(Region, StationName, Domain, FISH.conc.mn)  %>% 
+  spread(Domain, FISH.conc.mn)  #%>%
+
+#Correlation test
+set.seed(24)
+counts_counts_corr <- as.data.frame(data_4_corr.c) %>% 
+  select(-c(Region,StationName))%>% 
+  cor_mat(method = "pearson")
+#get correlation cooficients
+corr_rho.c<- counts_counts_corr  
+#check p-values
+corr_p.c <- counts_counts_corr %>% cor_get_pval()
+
+#plot
+counts_counts_corr %>%
   cor_reorder() %>%
   pull_lower_triangle() %>%
   cor_plot(significant.level = 0.1,label = TRUE)
 
-#write output
-write.csv(corr_rho, "./corr_table.csv")
+#write.csv(corr_rho.c, "./corr_table_counts_to_counts.csv")
+#write.csv(corr_p.c, "./p_table_counts_to_counts.csv")
 ```
+
 ### Enigmatic microbial lineages increase in cell abundance towards the deep ocean
 
 ## Depth profiles by taxa
@@ -450,15 +642,20 @@ depth_corr <- depth_FISH_by_regions_wide %>%
   select(taxa.depth)%>% 
    cor_mat(method = "pearson")
 #correlation cooficients
-depth_corr_rho<- depth_corr %>% select(rowname,taxa.depth)
+depth_corr_rho <- depth_corr %>% select(rowname,taxa.depth)
 #p values
 depth_corr_p <- depth_corr %>% cor_get_pval()%>%  select(rowname,taxa.depth)
 
 #plot
-depth_corr %>%
+if(require("ggpubr")){
+  my.palette <- get_palette("PuOr", 200)
+  depth_corr %>%
   cor_reorder() %>%
   pull_lower_triangle() %>%
-  cor_plot(label = TRUE)
+  cor_plot(label = TRUE, palette = my.palette, method = "number")
+}
+#write.csv(depth_corr_rho, "./depth_corr_rho.csv")
+#write.csv(depth_corr_p, "./depth_corr_p.csv")
 ```
 
 
@@ -479,5 +676,5 @@ Region_FISH_prop_Wilcox
  
 ## Save image
 ```{r save2}
-save.image("Data_analysis.RData")
+#save.image("Data_analysis.RData")
 ```

@@ -189,20 +189,22 @@ taxa.sur <- c("SAR11","ROS","GAM","ALT","BACT","POL","VER","OPI")
 counts_taxa.sur <- counts_all[counts_all$Domain %in% taxa.sur, ]
 counts_Sur <- subset(counts_taxa.sur, Depth == "SRF")
 counts_Sur$Domain <- factor(counts_Sur$Domain, levels = c("SAR11","ROS","GAM","ALT","BACT","POL","VER","OPI"))
+counts_Sur$StationName <- factor(counts_Sur$StationName, levels = c("EG1","EG4","N5","N4","N3","HG9","HG7","HG5", "HG4","HG2","HG1"))
 
 barplot <- ggplot(counts_Sur, aes(x= StationName, y = FISH.conc.mn, fill = Region))+
   geom_bar(stat = "identity", colour="black")+
   scale_fill_manual(values=c("WSC" = "red", "EGC" = "blue", "N" = "gray")) +
   ylab(bquote('Cell abundance ('*cells ~mL^-1*')'))+
   xlab("")+
-  facet_wrap(~ Domain,scales = "free_x", ncol=2,labeller = as_labeller(taxa_sur_names))+
+  facet_wrap(~ Domain,scales = "free_y", ncol=2,labeller = as_labeller(taxa_sur_names))+
   theme_bw()+
+  scale_y_continuous(labels = function(x) format(x, scientific = TRUE))+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),legend.position = "none",strip.background =element_rect(fill="white"))
 barplot
 
-#tiff("Figure-3-surface_counts.tiff", units="cm", width=20, height=23, res=800)
-#barplot
-#dev.off() 
+# tiff("Figure-3-surface_counts.tiff", units="cm", width=20, height=23, res=800)
+# barplot
+# dev.off()
 ```
 
 ## Coverage of Bacteria and Archaea probes in comparison to DAPI
@@ -386,7 +388,14 @@ surface_FISH_proportion%>%
 Depth profiles
 ```{r plot2}
 taxa.de <- c("CREN","SAR406","DELTA","SAR324","CFX","SAR202")
-counts_taxa.de <- FISH_abundances_by_region[FISH_abundances_by_region$Domain %in% taxa.de, ]
+
+counts_all%>%
+  group_by(Region, Domain, Depth) %>%
+  summarise(mean.abund = mean(FISH.conc.mn),
+            se.abund = se(FISH.conc.mn),
+            n= sum(n))-> y
+
+counts_taxa.de <- y[y$Domain %in% taxa.de, ]
 counts_taxa.de$Depth<- factor(counts_taxa.de$Depth, 
                         levels = rev(c("SRF", "EPI", "MESO", "BATHY")))
 counts_taxa.de$Domain<- factor(counts_taxa.de$Domain, 
@@ -404,10 +413,19 @@ Plot_depth_profiles.p <- ggplot(data = counts_taxa.de, aes(y = mean.abund, x = D
   geom_line(data = counts_taxa.de, linetype=1, aes(color =Region, group=Region))+
   facet_grid(.~Domain,labeller=labeller(Domain = domain_names))+
   #geom_errorbarh(data = FISH_abundances_by_region, aes(xmin=mean.abund-se.abund, xmax=mean.abund+se.abund)) +
-  scale_x_discrete(labels=c("SRF"="surface (15-30m)", "EPI"="epipelagic (100m)", "MESO"="mesopelagic (500-1000m)","BATHY"="bathypelagic (>1200m)"))+
+  scale_x_discrete(labels=c("SRF"="surface
+                              (15-30m)", 
+                            "EPI"="epipelagic 
+                           (100m)", 
+                            "MESO"="mesopelagic 
+                             (500-1000m)",
+                            "BATHY"="bathypelagic 
+                            (>1200m)"))+
   xlab("")+
   scale_y_log10()+
-  ylab(bquote('Cell abundance ('*10^5*''*cells ~mL^-1*')'))+
+  #ylab(bquote('Cell abundance ('*10^5*''*cells ~mL^-1*')'))+
+  ylab(bquote('Cell abundance ('*cells ~mL^-1*')'))+
+  scale_y_continuous(labels = function(x) format(x, scientific = TRUE))+
     coord_flip()+
   geom_errorbar(data = counts_taxa.de, aes(ymin=mean.abund-se.abund, ymax=mean.abund+se.abund), width=0.09)+
   geom_point(data = counts_taxa.de, aes(y = mean.abund, x = Depth),shape=21, fill="white")+
@@ -418,7 +436,7 @@ Plot_depth_profiles.p
 
 # tiff("Figure-4-Depth_profiles.tiff", units="cm", width=33, height=9, res=800)
 # Plot_depth_profiles.p
-# dev.off() 
+# dev.off()
 ```
 
 ```{r summarize_master_recyclers}

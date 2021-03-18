@@ -48,37 +48,3 @@ counts_all <-  raw.counts.SH %>%
             FISH.conc.sd = sd(FISH_conc),
             n = length(DAPI_conc))
 
-##################################
-# Depth profiles by taxa 
-##################################
-taxa.depth <- c("SAR11", "BACT", "GAM", "ARCH", "CREN", "DELTA", "SAR324",   "SAR202", "SAR406")
-
-
-#calculate mean conc., adjust the depth
-depth_FISH_by_regions <- counts_all%>% ungroup() %>% 
-  filter(Domain %in% taxa.depth) %>% 
-  group_by(Region, Depth, Domain) %>% 
-  summarise (mean.abund = mean(FISH.conc.mn),
-             se.abund = se(FISH.conc.mn))%>% ungroup() %>% 
-  mutate_if(is.factor, as.character) %>% 
-  mutate(Depth=replace(Depth, Depth=="SRF", 20),
-         Depth=replace(Depth, Depth=="EPI", 100),
-         Depth=replace(Depth, Depth=="MESO", 1000),
-         Depth=replace(Depth, Depth=="BATHY", 2500)) %>% 
-  mutate(Depth = as.numeric(Depth),
-         Domain = factor(Domain, levels = c("SAR11","BACT", "GAM", "ARCH","CREN","VER", "OPI","DELTA", "SAR324", "CFX",  "SAR202", "SAR406")))
-
-Depth_profiles_abs_abundance.p <- ggplot(depth_FISH_by_regions, aes(y = mean.abund, x = Depth, color = Region, group = Region))+
-  geom_line(size = 2)+
-  geom_point(color= "black", size = 2)+
-  #stat_smooth(method = "glm", formula = y ~ poly(x, 3), se = FALSE)+
-  #geom_line(data = spline_int, aes(x = x, y = y))+
-  #geom_smooth(aes(colour = Region), method = "auto")+
-  scale_y_log10()+
-  scale_x_reverse()+
-  coord_flip()+
-  facet_wrap(~Domain)+
-  labs(y = "Cell concentration (cells/mL)]", x = "Depth (m)")+
-  scale_color_manual(breaks = c("EGC", "N", "WSC"), values = c("blue", "gray", "red"))+
-  theme_bw()+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),legend.position = "none")

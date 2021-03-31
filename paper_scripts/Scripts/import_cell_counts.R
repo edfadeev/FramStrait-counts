@@ -1,3 +1,6 @@
+require(dplyr)
+require(tidyr)
+
 ##########################################
 # Import and preprocess cell counts tables
 ##########################################
@@ -11,7 +14,7 @@ se <- function(x, na.rm=FALSE) {
 calc.factor <- 99515.5458411807
 
 ## Import raw counts
-raw.counts <- read.csv("../Data/FOV_all_groups_SH.csv",
+raw.counts <- read.csv("./paper_scripts/Data/FOV_all_groups_SH.csv",
                        sep = ",", dec = ".", header = TRUE)
 
 #Split sample name and remove SV2 station and ABYSS depth and calculate counts per FOV
@@ -38,3 +41,4 @@ counts_all <-  raw.counts.SH %>%
             n = length(DAPI_conc))%>%
             ungroup %>%
             as.data.frame()
+

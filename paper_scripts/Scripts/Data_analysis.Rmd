@@ -1,4 +1,4 @@
-Fggsi---
+---
 title: "Data_analysis"
 author: "Magda Cardozo"
 date: "19/11/2019"
@@ -24,6 +24,16 @@ library(tidyverse);packageVersion("ggpubr")
 
 ```{r import and preprocess raw counts}
 source("import_cell_counts.R")
+
+prop16S <- read.csv("/Users/schatz/CARD-FISH/PS99_CARD-FISH_Analysis_final_folder(fill it in the end)/Scripts/PS99_16s_taxa.csv", sep =",", header=T, row.names = 1)
+
+prop16S %>%
+  gather(Domain, rel_abs, Alteromonadales:Verrucomicrobiae) %>%
+  separate(Sample, c("StationName", "Depth")," ") %>%
+  mutate(Region = ifelse(StationName %in% c("EG1","EG4"), "EGC", 
+                         ifelse(StationName %in% c("N3","N4","N5"), "N", 
+                                ifelse(StationName %in% c("N3","N4","N5"), "N", "WSC"))),
+         Depth = factor(Depth, levels = c("SRF","EPI","MESO","BATHY"))) -> prop16Sg 
 ```
 
 ### Bacterioplankton communities strongly change in cell abundance and composition with depth
@@ -324,7 +334,60 @@ counts_all%>%
   filter(Depth %in% c("SRF"))%>%
   group_by(Region, StationName, Domain)%>%
   mutate(proportion = (FISH.conc.mn / DAPI.conc.mn)*100) %>%
-  select(Region, StationName, Domain, FISH.conc.mn, proportion)  -> surface_FISH_proportion
+  mutate(proportion.sd = sd(proportion)) %>%
+  select(Region, StationName, Domain, FISH.conc.mn, proportion,proportion.sd)  -> surface_FISH_proportion
+```
+
+counts vrs amplicons
+```{r }
+prop16Sg %>%
+  filter(Domain %in% c("SAR11_clade","Rhodobacteraceae","Gammaproteobacteria","Alteromonadales","Bacteroidia","Polaribacter","Verrucomicrobiae","Opitutales")) %>%
+  filter(Depth == "SRF") %>%
+  filter(StationName != c("S3")) -> prop16Sg.SRF
+prop16Sg.SRF$StationName <- factor(prop16Sg.SRF$StationName, levels = c("EG1","EG4","N5","N4","HG9", "HG4","HG2","HG1"))
+prop16Sg.SRF$Domain <- factor(prop16Sg.SRF$Domain, levels = c("SAR11_clade","Rhodobacteraceae","Gammaproteobacteria","Alteromonadales","Bacteroidia","Polaribacter","Verrucomicrobiae","Opitutales"))  
+
+abundances_amplicon <- ggplot(prop16Sg.SRF, aes(x= StationName, y = rel_abs, fill = Region))+
+  geom_bar(stat = "identity", colour="black")+
+  scale_fill_manual(values=c("WSC" = "red", "EGC" = "blue", "N" = "gray")) +
+  ylab("Relative abundance (%) Based on 16S rRNA")+
+  xlab("")+
+  facet_wrap(~ Domain,scales = "free_y", ncol=1)+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),legend.position = "none",strip.background =element_rect(fill="white"))
+abundances_amplicon
+
+taxa_sur_names <- c(`SAR11` = "SAR11 clade",
+                 `ROS` = "Rhodobacteraceae",
+                 `GAM` = "Gammaproteobacteria",
+                 `ALT` = "Alteromonadaceae/Colwelliaceae/Pseudoalteromonadaceae",
+                 `BACT` = "Bacteroidetes",
+                 `POL` = "Polaribacter",
+                 `VER` = "Verrucomicrobiales",
+                 `OPI` = "Opitutales")
+
+proportions.sur <- surface_FISH_proportion[surface_FISH_proportion$Domain %in% taxa.sur, ]
+proportions.sur %>%
+  filter(StationName %in% c("EG1","EG4","N5","N4","HG9", "HG4","HG2","HG1")) -> proportions.sur.sub
+proportions.sur.sub$Domain <- factor(proportions.sur.sub$Domain, levels = c("SAR11","ROS","GAM","ALT","BACT","POL","VER","OPI"))
+proportions.sur.sub$StationName <- factor(proportions.sur.sub$StationName, levels = c("EG1","EG4","N5","N4","HG9", "HG4","HG2","HG1"))
+
+abundances_counts <- ggplot(proportions.sur.sub, aes(x= StationName, y = proportion, fill = Region))+
+  geom_bar(stat = "identity", colour="black")+
+  scale_fill_manual(values=c("WSC" = "red", "EGC" = "blue", "N" = "gray")) +
+  ylab("Relative abundance (%) based on CARD-FISH")+
+  xlab("")+
+  facet_wrap(~ Domain,scales = "free_y", ncol=1,labeller = as_labeller(taxa_sur_names))+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),legend.position = "none",strip.background =element_rect(fill="white"))
+abundances_counts
+
+comparions_plot <- plot_grid(abundances_amplicon, abundances_counts, ncol =2, labels = "auto")
+comparions_plot
+
+#tiff("Figure-3-surface_proportions.tiff", units="cm", width=20, height=23, res=800)
+#comparions_plot
+#dev.off()
 ```
 
 Test significance
@@ -494,7 +557,7 @@ Correlation test between the env. parameters and plot (no protist included)
 ```{r envpar-selfcorr}
 set.seed(21)
 envpar_corr <- metadata.scaled.SRF %>% 
-  select("Temperature","Salinity","Chla_conc", "d.NO3.", "d.PO4.", "d.SiO3.", "NH4")%>% 
+  select("Temperature","Salinity","Chla_conc", "d.NO3.", "d.PO4.", "d.SiO3.")%>% 
    cor_mat(method = "pearson")
 envpar_corr
 #check the p-values

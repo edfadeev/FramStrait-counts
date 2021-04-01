@@ -5,7 +5,7 @@ date: "19/11/2019"
 output: github_document
 ---
 
-## Load required libraries
+### Load required libraries
 
 ```{r fun, message=TRUE, warning=TRUE}
 library(rstatix);packageVersion("rstatix")
@@ -20,12 +20,16 @@ library(tidyverse);packageVersion("tidyverse")
 library(tidyverse);packageVersion("ggpubr")
 ```
 
-## Import data
+### Import counts data
 
 ```{r import and preprocess raw counts}
 source("import_cell_counts.R")
+```
 
-prop16S <- read.csv("/Users/schatz/CARD-FISH/PS99_CARD-FISH_Analysis_final_folder(fill it in the end)/Scripts/PS99_16s_taxa.csv", sep =",", header=T, row.names = 1)
+### Import 16S relative abundance data
+
+```{r import 16S}
+prop16S <- read.csv("./PS99_16s_taxa.csv", sep =",", header=T, row.names = 1)
 
 prop16S %>%
   gather(Domain, rel_abs, Alteromonadales:Verrucomicrobiae) %>%
@@ -36,9 +40,10 @@ prop16S %>%
          Depth = factor(Depth, levels = c("SRF","EPI","MESO","BATHY"))) -> prop16Sg 
 ```
 
-### Bacterioplankton communities strongly change in cell abundance and composition with depth
 
-## Significance of DAPI-stained cells  with depth
+## Bacterioplankton communities strongly change in cell abundance and composition with depth
+
+### Significance of DAPI-stained cells  with depth
 
 ```{r sigDAPIDpth}
 #test for normal distribution
@@ -54,13 +59,13 @@ DAPI_Wilcox <- counts_all  %>%
   wilcox_test(DAPI.conc.mn ~ Depth, p.adjust.method = "bonferroni") %>%
   add_significance()
 DAPI_Wilcox
-``` 
+```
 
-## Significance of Bacteria/Archaea with depth
+### Significance of Bacteria/Archaea with depth
 
-#Bacteria
+#### Bacteria
 
-Obtian mean abundaces by region
+Obtian mean abundances by region
 ```{r sigEUBDpth}
 counts_all%>% 
   filter(Domain %in% c("EUB")) -> EUB_sum
@@ -88,9 +93,9 @@ EUB_Wilcox <- EUB_sum  %>%
 EUB_Wilcox
 ```
 
-#Archaea
+#### Archaea
 
-Obtain mean Archaea abundaces by region
+Obtain mean Archaea abundances by region
 ```{r sigARCHDpth}
 counts_all%>% 
   filter(Domain %in% c("ARCH")) -> ARCH_sum
@@ -118,19 +123,10 @@ ARCH_Wilcox <- ARCH_sum  %>%
 ARCH_Wilcox
 ```
 
-```{r sumDAPIDpth}
-counts_all%>%
-  group_by(Region, StationName, Depth) %>%
-  summarise(mean.DAPI = mean(DAPI.conc.mn)/1e5,
-            sd.DAPI =sd(DAPI.conc.mn)/1e5)-> Total_DAPI_by_Station
 
-counts_all %>%
-  group_by(Region, Depth) %>%
-  summarise(mean.DAPI = mean(DAPI.conc.mn)/1e5,
-            sd.DAPI =sd(DAPI.conc.mn)/1e5)-> Mean_DAPI_by_region
-```
+## Bacterioplankton cell abundances in the different regions of the Fram Strait
 
-## Bacterioplankton cell abundances in the different regions of the Fram Strait (Figure 2.)
+#### Figure 2. 
 
 Plot
 ```{r ptVER}
@@ -143,14 +139,11 @@ DAPI_vertical_boxplot <- ggplot(counts_all, aes(x= Region, y = DAPI.conc.mn))+
   geom_boxplot(aes(fill = Region))+
   facet_grid(Depth~.,labeller = as_labeller(depth_names))+
   geom_jitter(aes(x= Region, y = DAPI.conc.mn),width = 0.2, alpha = 0.3)+
-#  geom_signif(comparisons = list(c("EGC", "WSC"),c("EGC","N"),c("N","WSC")), 
-#              map_signif_level=TRUE, test = "wilcox.test")+
   scale_y_log10()+
   ylab(bquote('Cell abundance ('*cells ~mL^-1*')'))+
   scale_fill_manual(values=c("WSC" = "red", "EGC" = "blue", "N" = "gray")) +
   theme_bw()+
   xlab("")+
- # coord_flip()+
   scale_x_discrete(position = "top")+ 
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),legend.position = "none",strip.background =element_rect(fill="white"))
 
@@ -164,25 +157,38 @@ for (i in c("EUB","ARCH")){
     geom_boxplot(aes(fill = Region))+
     facet_grid(Depth~.,labeller = as_labeller(depth_names))+
     geom_jitter(aes(x= Region, y = FISH.conc.mn),width = 0.2, alpha = 0.3)+
-#    geom_signif(comparisons = list(c("EGC", "WSC"),c("EGC","N"),c("N","WSC")), 
-#                map_signif_level=TRUE, test = "wilcox.test")+ # significance by region
     scale_y_log10()+
     ylab("")+
     xlab("")+
-    #ylab(bquote('Cell abundance ('*cells ~mL^-1*')'))+
     scale_fill_manual(values=c("WSC" = "red", "EGC" = "blue", "N" = "gray")) +
     theme_bw()+
-#    coord_flip()+
     scale_x_discrete(position = "top")+ 
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),legend.position = "none",strip.background =element_rect(fill="white"))
 }
 
-x <- plot_grid(DAPI_vertical_boxplot, p[["EUB"]],p[["ARCH"]], ncol =3, labels = "auto")
-x
+Figure_2 <- plot_grid(DAPI_vertical_boxplot, p[["EUB"]],p[["ARCH"]], ncol =3, labels = "auto")
+Figure_2
+```
+
+Save plot
+```{r saveF2}
+#Save as tiff
 #tiff("test.tiff", units="cm", width=19, height=17, res=800)
 #plot_grid(DAPI_vertical_boxplot, p[["EUB"]],p[["ARCH"]], ncol =3, labels = "auto")
 #dev.off()
+
+#Save as PDF
+# pdf("~/CARD-FISH/PS99_CARD-FISH_Analysis_final_folder(fill it in the end)/Scripts/Figure-2.pdf")
+# plot_grid(DAPI_vertical_boxplot, p[["EUB"]],p[["ARCH"]], ncol =3, labels = "auto")
+# dev.off()
 ```
+
+
+## Surface water bacterioplankton communities are affected by distinct phytoplankton bloom conditions across the Fram Strait 
+
+###  Cell abundances of surface taxonomic groups in each station in Fram Strait
+
+#### Figure 3. 
 
 Barplot surface counts
 ```{r barplot}
@@ -203,6 +209,8 @@ counts_Sur$StationName <- factor(counts_Sur$StationName, levels = c("EG1","EG4",
 
 barplot <- ggplot(counts_Sur, aes(x= StationName, y = FISH.conc.mn, fill = Region))+
   geom_bar(stat = "identity", colour="black")+
+  geom_errorbar(aes(ymin=FISH.conc.mn-FISH.conc.sd, ymax=FISH.conc.mn+FISH.conc.sd), width=.2,
+                 position=position_dodge(.9))+ 
   scale_fill_manual(values=c("WSC" = "red", "EGC" = "blue", "N" = "gray")) +
   ylab(bquote('Cell abundance ('*cells ~mL^-1*')'))+
   xlab("")+
@@ -211,87 +219,20 @@ barplot <- ggplot(counts_Sur, aes(x= StationName, y = FISH.conc.mn, fill = Regio
   scale_y_continuous(labels = function(x) format(x, scientific = TRUE))+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),legend.position = "none",strip.background =element_rect(fill="white"))
 barplot
-
-# tiff("Figure-3-surface_counts.tiff", units="cm", width=20, height=23, res=800)
-# barplot
-# dev.off()
 ```
 
-## Coverage of Bacteria and Archaea probes in comparison to DAPI
+Save plot
+```{r saveF3}
+#Save as tiff
+#tiff("Figure-3-surface_counts.tiff", units="cm", width=20, height=23, res=800)
+#barplot
+#dev.off()
 
-Obtain proportions for Bacteria and Archaea
-```{r covEA}
-counts_all%>% 
-  filter(Domain %in% c("EUB","ARCH"))%>%
-  group_by(Region, StationName, Depth, Domain) %>% 
-  summarise(proportion = FISH.conc.mn/DAPI.conc.mn)%>% 
-  spread(Domain, proportion)%>%
-  mutate(Total.prop = ARCH+EUB) %>%
-  ungroup() %>%
-  as.data.frame()-> EUB_ARCH_prop
+#Save as PDF
+#ggsave(plot= barplot, file="~/CARD-FISH/PS99_CARD-FISH_Analysis_final_folder(fill it in the end)/Scripts/Figure-3-surface_counts.pdf",units="cm",bg = "transparent", width=20, height=23, dpi=800)
 ```
 
-Bacteria coverage test
-```{r covEUB}
-#test for normal distribution
-set.seed(10)
-shapiro_EUB <-shapiro.test(EUB_ARCH_prop$EUB)# normally distributed p > 0.01 
-shapiro_EUB
-#ANOVA for depth
-set.seed(11)
-aov.EUB_Depth <- aov(EUB ~ Depth, data = EUB_ARCH_prop)
-summary(aov.EUB_Depth)
-TukeyHSD(aov.EUB_Depth) # signifcant decrease from surface to deeper water layers
-#ANOVA for region
-set.seed(12)
-aov.EUB_Region <- aov(EUB ~ Region, data = EUB_ARCH_prop)
-summary(aov.EUB_Region) #not significant differences between regions
-```
-
-Archaea coverage test
-```{r covARCH}
-#test for normal distribution
-set.seed(13)
-shapiro_ARCH <-shapiro.test(EUB_ARCH_prop$ARCH) # normally distributed p > 0.01 
-shapiro_ARCH
-#ANOVA for depth
-set.seed(14)
-aov.ARCH_Depth <- aov(ARCH ~ Depth, data = EUB_ARCH_prop)
-summary(aov.ARCH_Depth)
-TukeyHSD(aov.ARCH_Depth) #significant increase from surface to deeper layers
-#ANOVA for region
-set.seed(15)
-aov.ARCH_Region <- aov(ARCH ~ Region, data = EUB_ARCH_prop)
-summary(aov.ARCH_Region) #not significant differences
-```
-
-Total coverage
-```{r covT}
-EUB_ARCH_prop%>%
-  group_by(Region, StationName, Depth) %>%
-  summarise(total.coverage = sum(Total.prop),
-            sd.coverage = sd(Total.prop)) -> EUB_ARCH_coverage
-```
-
-By regions
-```{r covR}
-EUB_ARCH_coverage %>%
-  group_by(Region, Depth) %>%
-  summarise(mean.coverage = mean(total.coverage),
-            sd.coverage = se(total.coverage)) -> EUB_ARCH_coverage_by_region
-```
-
-Proportions by depth
-```{r covD}
-EUB_ARCH_coverage %>%
-  group_by(Depth) %>%
-  summarise(mean.coverage = mean(total.coverage),
-            sd.coverage = se(total.coverage)) -> EUB_ARCH_coverage_by_depth
-```            
-
-### Surface water bacterioplankton communities are affected by distinct phytoplankton bloom conditions across the Fram Strait 
-
-## Significance of surface DAPI-stained cells between regions
+### Significance of surface DAPI-stained cells between regions
 
 ```{r sigDAPIReg}
 #select surface counts
@@ -312,7 +253,7 @@ Region_DAPI_srf_Wilcox <- DAPI_sum_srf   %>%
 Region_DAPI_srf_Wilcox #significant differences between regions
 ```
 
-## Significance of groups between the regions 
+### Significance of groups between the regions 
 
 Here we test each group significant differences between regions
 ```{r sigGrReg}
@@ -326,20 +267,37 @@ Region_FISH_srf_Wilcox_sig <- filter(Region_FISH_srf_Wilcox, p.adj < 0.01)
 Region_FISH_srf_Wilcox_sig #no group was significant
 ```
 
-## Proportional abundance of the different groups at the surface
+### Proportional abundance of the different groups at the surface
 
 Obtain proportions of surface taxonomic groups
 ```{r FISHSRF}
 counts_all%>% 
   filter(Depth %in% c("SRF"))%>%
   group_by(Region, StationName, Domain)%>%
-  mutate(proportion = (FISH.conc.mn / DAPI.conc.mn)*100) %>%
-  mutate(proportion.sd = sd(proportion)) %>%
+  mutate(proportion = (FISH.conc.mn / DAPI.conc.mn)) %>%
+  mutate(proportion.sd = sqrt((proportion*(1-proportion))/DAPI.conc.mn)) %>%
+  mutate(proportion = proportion*100) %>%
+  mutate(proportion.sd = proportion.sd*100) %>%
   select(Region, StationName, Domain, FISH.conc.mn, proportion,proportion.sd)  -> surface_FISH_proportion
 ```
 
-counts vrs amplicons
-```{r }
+Test significance
+```{r sigFISH}
+set.seed(20)
+Region_FISH_prop_srf_Wilcox <- surface_FISH_proportion   %>%
+  group_by(Domain)%>%
+  rstatix::wilcox_test(proportion ~ Region, p.adjust.method = "BH") %>%
+  add_significance()
+Region_FISH_prop_srf_Wilcox
+Region_FISH_prop_srf_Wilcox_sig <- filter(Region_FISH_prop_srf_Wilcox, p.adj < 0.01)
+Region_FISH_prop_srf_Wilcox_sig #no significant differences
+```
+
+### Comparison of counts with 16S rRNA amplicon data 
+
+### Figure S1.
+
+```{r comparison FISH 16S}
 prop16Sg %>%
   filter(Domain %in% c("SAR11_clade","Rhodobacteraceae","Gammaproteobacteria","Alteromonadales","Bacteroidia","Polaribacter","Verrucomicrobiae","Opitutales")) %>%
   filter(Depth == "SRF") %>%
@@ -374,6 +332,8 @@ proportions.sur.sub$StationName <- factor(proportions.sur.sub$StationName, level
 
 abundances_counts <- ggplot(proportions.sur.sub, aes(x= StationName, y = proportion, fill = Region))+
   geom_bar(stat = "identity", colour="black")+
+  geom_errorbar(aes(ymin=proportion-proportion.sd, ymax=proportion+proportion.sd), width=.2,
+                 position=position_dodge(.9))+
   scale_fill_manual(values=c("WSC" = "red", "EGC" = "blue", "N" = "gray")) +
   ylab("Relative abundance (%) based on CARD-FISH")+
   xlab("")+
@@ -384,25 +344,20 @@ abundances_counts
 
 comparions_plot <- plot_grid(abundances_amplicon, abundances_counts, ncol =2, labels = "auto")
 comparions_plot
+```
 
-#tiff("Figure-3-surface_proportions.tiff", units="cm", width=20, height=23, res=800)
+Save plot
+```{r saveFS1}
+#Save as tiff
+#tiff("Figure-S1-comparison.tiff", units="cm", width=20, height=23, res=800)
 #comparions_plot
 #dev.off()
+
+#Save ad PDF
+#ggsave(plot= comparions_plot, file="~/CARD-FISH/PS99_CARD-FISH_Analysis_final_folder(fill it in the end)/Scripts/Figure-S1-comparison.pdf",units="cm",bg = "transparent", width=20, height=35, dpi=800)
 ```
 
-Test significance
-```{r sigFISH}
-set.seed(20)
-Region_FISH_prop_srf_Wilcox <- surface_FISH_proportion   %>%
-  group_by(Domain)%>%
-  rstatix::wilcox_test(proportion ~ Region, p.adjust.method = "BH") %>%
-  add_significance()
-Region_FISH_prop_srf_Wilcox
-Region_FISH_prop_srf_Wilcox_sig <- filter(Region_FISH_prop_srf_Wilcox, p.adj < 0.01)
-Region_FISH_prop_srf_Wilcox_sig #no significant differences
-```
-
-## Overview of phylogenetic group abundances by regions 
+### Overview of phylogenetic group abundances by regions 
 
 Calculate abundance in surface by region 
 ```{r FISH}
@@ -448,7 +403,106 @@ surface_FISH_proportion%>%
              se.prop = sd(proportion)) -> surface_FISH_proportion_by_regions
 ```
 
-Depth profiles
+
+## Bacterioplankton communities strongly change in cell abundance and composition with depth
+
+### Coverage of Bacteria and Archaea probes in comparison to DAPI
+
+Obtain proportions for Bacteria and Archaea
+```{r covEA}
+counts_all%>% 
+  filter(Domain %in% c("EUB","ARCH"))%>%
+  group_by(Region, StationName, Depth, Domain) %>% 
+  summarise(proportion = FISH.conc.mn/DAPI.conc.mn)%>% 
+  spread(Domain, proportion)%>%
+  mutate(Total.prop = ARCH+EUB) %>%
+  ungroup() %>%
+  as.data.frame()-> EUB_ARCH_prop
+```
+
+#### Bacteria coverage test
+
+```{r covEUB}
+#test for normal distribution
+set.seed(10)
+shapiro_EUB <-shapiro.test(EUB_ARCH_prop$EUB)# normally distributed p > 0.01 
+shapiro_EUB
+#ANOVA for depth
+set.seed(11)
+aov.EUB_Depth <- aov(EUB ~ Depth, data = EUB_ARCH_prop)
+summary(aov.EUB_Depth)
+TukeyHSD(aov.EUB_Depth) # signifcant decrease from surface to deeper water layers
+#ANOVA for region
+set.seed(12)
+aov.EUB_Region <- aov(EUB ~ Region, data = EUB_ARCH_prop)
+summary(aov.EUB_Region) #not significant differences between regions
+```
+
+#### Archaea coverage test
+
+```{r covARCH}
+#test for normal distribution
+set.seed(13)
+shapiro_ARCH <-shapiro.test(EUB_ARCH_prop$ARCH) # normally distributed p > 0.01 
+shapiro_ARCH
+#ANOVA for depth
+set.seed(14)
+aov.ARCH_Depth <- aov(ARCH ~ Depth, data = EUB_ARCH_prop)
+summary(aov.ARCH_Depth)
+TukeyHSD(aov.ARCH_Depth) #significant increase from surface to deeper layers
+#ANOVA for region
+set.seed(15)
+aov.ARCH_Region <- aov(ARCH ~ Region, data = EUB_ARCH_prop)
+summary(aov.ARCH_Region) #not significant differences
+```
+
+#### Total coverage
+
+```{r covT}
+EUB_ARCH_prop%>%
+  group_by(Region, StationName, Depth) %>%
+  summarise(total.coverage = sum(Total.prop),
+            sd.coverage = sd(Total.prop)) -> EUB_ARCH_coverage
+```
+
+#### By regions
+
+```{r covR}
+EUB_ARCH_coverage %>%
+  group_by(Region, Depth) %>%
+  summarise(mean.coverage = mean(total.coverage),
+            sd.coverage = se(total.coverage)) -> EUB_ARCH_coverage_by_region
+```
+
+#### Proportions by depth
+
+```{r covD}
+EUB_ARCH_coverage %>%
+  group_by(Depth) %>%
+  summarise(mean.coverage = mean(total.coverage),
+            sd.coverage = se(total.coverage)) -> EUB_ARCH_coverage_by_depth
+```
+
+### Calculate proportional abundance of the different groups by regions
+
+```{r FSRFgr}
+# counts_all%>%
+#   group_by(Region, StationName, Domain)%>%
+#   mutate(proportion = (FISH.conc.mn / DAPI.conc.mn)*100) %>%
+#   group_by(Region, Domain, Depth) %>%
+#   summarise(mean.prop = mean(proportion),
+#             se.prop = se(proportion))%>%
+#   select(Region, Domain, mean.prop, Depth) %>%
+#   spread(Domain,mean.prop) ->  FISH_proportion
+
+#write.csv(FISH_proportion, file="~/CARD-FISH/CARD-FISH_water_project/cell_prortions.csv")
+```
+
+
+## Enigmatic microbial lineages increase in cell abundance towards the deep ocean
+
+### Figure 4. Depth profiles
+
 ```{r plot2}
 taxa.de <- c("CREN","SAR406","DELTA","SAR324","CFX","SAR202")
 
@@ -475,7 +529,6 @@ domain_names <- c(`CREN`="Thaumarchaeota",
 Plot_depth_profiles.p <- ggplot(data = counts_taxa.de, aes(y = mean.abund, x = Depth))+
   geom_line(data = counts_taxa.de, linetype=1, aes(color =Region, group=Region))+
   facet_grid(.~Domain,labeller=labeller(Domain = domain_names))+
-  #geom_errorbarh(data = FISH_abundances_by_region, aes(xmin=mean.abund-se.abund, xmax=mean.abund+se.abund)) +
   scale_x_discrete(labels=c("SRF"="surface
                               (15-30m)", 
                             "EPI"="epipelagic 
@@ -486,7 +539,6 @@ Plot_depth_profiles.p <- ggplot(data = counts_taxa.de, aes(y = mean.abund, x = D
                             (>1200m)"))+
   xlab("")+
   scale_y_log10()+
-  #ylab(bquote('Cell abundance ('*10^5*''*cells ~mL^-1*')'))+
   ylab(bquote('Cell abundance ('*cells ~mL^-1*')'))+
   scale_y_continuous(labels = function(x) format(x, scientific = TRUE))+
     coord_flip()+
@@ -496,36 +548,57 @@ Plot_depth_profiles.p <- ggplot(data = counts_taxa.de, aes(y = mean.abund, x = D
   theme_bw()+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),legend.position = "none",strip.background =element_rect(fill="white"))
 Plot_depth_profiles.p
-
-# tiff("Figure-4-Depth_profiles.tiff", units="cm", width=33, height=9, res=800)
-# Plot_depth_profiles.p
-# dev.off()
 ```
 
-```{r summarize_master_recyclers}
-surface_FISH_MR<- surface_FISH_proportion%>%
-  mutate(Master_Rec = if_else(Domain %in% c("BACT","GAM","VER"), "yes","no"))%>%
-  group_by(Region, StationName, Master_Rec) %>%
-  summarise (sum.abund = sum(FISH.conc.mn),
-             sum.prop = sum(proportion))%>%
-  filter(Master_Rec =="yes")
+Save plot
+```{r saveF4}
+#Save as tiff
+#tiff("Figure-4-Depth_profiles.tiff", units="cm", width=33, height=9, res=800)
+#Plot_depth_profiles.p
+#dev.off()
+
+#Save as PDF
+#ggsave(plot= Plot_depth_profiles.p, file="~/CARD-FISH/PS99_CARD-FISH_Analysis_final_folder(fill it in the end)/Scripts/Figure-4-Depth_profiles.pdf",units="cm",bg = "transparent", width=33, height=9,, dpi =800)
 ```
 
-Calculate proportional abundance of the different groups
-```{r FSRFgr}
-counts_all%>%
-  group_by(Region, StationName, Domain)%>%
-  mutate(proportion = (FISH.conc.mn / DAPI.conc.mn)*100) %>%
-  group_by(Region, Domain, Depth) %>%
-  summarise(mean.prop = mean(proportion),
-            se.prop = se(proportion))%>%
-  select(Region, Domain, mean.prop, Depth) %>%
-  spread(Domain,mean.prop) ->  FISH_proportion
+### Cell abundances profiles by taxa
 
-#write.csv(FISH_proportion, file="~/CARD-FISH/CARD-FISH_water_project/cell_prortions.csv")
-```  
+Select taxa and transform dataframes
+```{r vert-corr}
+taxa.depth <- c("SAR11", "BACT", "GAM", "ARCH", "CREN", "DELTA", "SAR324",   "SAR202", "SAR406","ALT","POL","ROS","CFX","OPI", "VER","EUB")
 
-## Correlation between environmental parameters and cell abundances
+#calculate mean conc., adjust the depth
+depth_FISH_by_regions <- counts_all%>% ungroup() %>% 
+  filter(Domain %in% taxa.depth)%>% 
+as.data.frame()
+
+depth_FISH_by_regions_wide<- depth_FISH_by_regions %>%
+  group_by(Region, StationName, Depth, Domain) %>% 
+  select(Region, StationName, Depth, Domain, FISH.conc.mn)  %>% 
+  spread(Domain, FISH.conc.mn)%>% 
+  as.data.frame()
+```
+
+### Test for significance with depth
+
+```{r vert-prof}
+set.seed(24)
+counts_all %>% 
+  group_by(Domain) %>% 
+  kruskal_test(FISH.conc.mn~Depth)
+
+set.seed(25)
+Region_FISH_prop_Wilcox <- counts_all   %>%
+  group_by(Domain)%>%
+  rstatix::wilcox_test(FISH.conc.mn~Depth) %>%
+  adjust_pvalue(method = "BH")%>%
+  add_significance()
+Region_FISH_prop_Wilcox
+```
+
+### Correlations 
+
+#### Correlation between environmental parameters and cell abundances
 
 Import and normalize environmental parameters
 ```{r envpar-imp}
@@ -553,7 +626,9 @@ metadata.scaled.SRF_p$Depth.m.<- NULL
 metadata.scaled.SRF_p$Depth<- NULL
 ```
 
-Correlation test between the env. parameters and plot (no protist included)
+#### Correlation between the env. parameters and plot (no protist included, Figure S2)
+
+Transform data
 ```{r envpar-selfcorr}
 set.seed(21)
 envpar_corr <- metadata.scaled.SRF %>% 
@@ -562,8 +637,10 @@ envpar_corr <- metadata.scaled.SRF %>%
 envpar_corr
 #check the p-values
 envpar_corr.pvalues <- envpar_corr %>% cor_get_pval()
+```
 
-#plot
+Plot Figure S2
+```{r CorF2}
 if(require("ggpubr")){
   my.palette <- get_palette("PuOr", 200)
   envpar_corr %>%
@@ -571,39 +648,11 @@ if(require("ggpubr")){
   pull_lower_triangle() %>%
   cor_plot(label = TRUE, palette = my.palette, method = "number")
 }
-
-#write output
-#write.csv(envpar_corr, "./corr_table_env_env.csv")
-#write.csv(envpar_corr.pvalues, "./p_table_env_env.csv")
 ```
 
-Correlation test between the env. parameters and plot (with protist groups)
-```{r envpar-selfcorr_p}
-set.seed(22)
-envpar_corr.p <- as.data.frame(metadata.scaled.SRF_p) %>% 
-  select(-c(StationName))%>% 
-   cor_mat(method = "pearson")
-envpar_corr.p
-#check the p-values
-envpar_corr.pvalues.p <- envpar_corr.p %>% cor_get_pval()
+#### Correlation between environmental parameters and cell abundances at the surface
 
-#get correlation cooficients
-corr_rho.p<- envpar_corr.p %>% select(rowname, "Diatoms", "Phaeocystis.spp","Coccolithophores","Nanoflagellates","Prorocentrum.spp","Myrionecta.rubra","Dinoflagellates","Ciliates","Tintinnids")
-#check p-values
-corr_p.p <- envpar_corr.p %>% cor_get_pval()%>% select(rowname, "Diatoms", "Phaeocystis.spp","Coccolithophores","Nanoflagellates","Prorocentrum.spp","Myrionecta.rubra","Dinoflagellates","Ciliates","Tintinnids")
-
-#plot
-envpar_corr.p %>%
-  cor_reorder() %>%
-  pull_lower_triangle() %>%
-  cor_plot(label = TRUE)
-
-#write output
-#write.csv(corr_rho.p, "./corr_table_env_protist.csv")
-#write.csv(corr_p.p, "./p_table_env_protist.csv")
-```
-
-Correlation between environmental parameters and cell abundances of different groups and plot
+Transform data
 ```{r envpar-counts-corr}
 #merge counts and env.par data
 data_4_corr.sub <- counts_all%>% 
@@ -615,8 +664,10 @@ data_4_corr.sub <- counts_all%>%
   filter(StationName %in% metadata.scaled.SRF_p$StationName) %>% 
   #merge counts and environmental data
   left_join(., metadata.scaled.SRF_p, by = "StationName")
+```
 
-#Correlation test
+Correlation test
+```{r envpar-counts test}
 set.seed(23)
 counts_env_par_corr <- as.data.frame(data_4_corr.sub) %>% 
   select(-c(Region,StationName))%>% 
@@ -625,8 +676,10 @@ counts_env_par_corr <- as.data.frame(data_4_corr.sub) %>%
 corr_rho<- counts_env_par_corr %>% select(rowname,"Temperature","Salinity","Chla_conc","d.NO3.","d.PO4.","d.SiO3.", "Diatoms", "Phaeocystis.spp","Coccolithophores","Nanoflagellates","Prorocentrum.spp","Myrionecta.rubra","Dinoflagellates","Ciliates","Tintinnids")
 #check p-values
 corr_p <- counts_env_par_corr %>% cor_get_pval()%>% select(rowname,"Temperature","Salinity","Chla_conc","d.NO3.","d.PO4.","d.SiO3.", "Diatoms", "Phaeocystis.spp","Coccolithophores","Nanoflagellates","Prorocentrum.spp","Myrionecta.rubra","Dinoflagellates","Ciliates","Tintinnids")
+```
 
-#plot
+Plot
+```{r envpar-counts plot}
 counts_env_par_corr %>%
   cor_reorder() %>%
   pull_lower_triangle() %>%
@@ -637,124 +690,7 @@ counts_env_par_corr %>%
 #write.csv(corr_p, "./p_table_counts_env_protist.csv")
 ```
 
-Correlation between environmental parameters and cell abundances of different groups (no protists)
-```{r envpar-counts-corr_nop}
-#merge counts and env.par data
-data_4_corr <- counts_all%>% 
-  filter(Depth %in% c("SRF"))%>%
-  group_by(Region, StationName, Domain)%>%
-  select(Region, StationName, Domain, FISH.conc.mn)  %>% 
-  spread(Domain, FISH.conc.mn)  %>%
-  #drop samples with no env. data
-  filter(StationName %in% metadata.scaled.SRF$StationName) %>% 
-  #merge counts and environmental data
-  left_join(., metadata.scaled.SRF[,c("StationName",env.par)] , by = "StationName")
 
-#Correlation test
-set.seed(24)
-counts_env_par_corr_all <- as.data.frame(data_4_corr) %>% 
-  select(-c(Region,StationName))%>% 
-  cor_mat(method = "pearson")
-#get correlation cooficients
-corr_rho.a<- counts_env_par_corr_all %>% select(rowname,env.par)
-#check p-values
-corr_p.a <- counts_env_par_corr_all %>% cor_get_pval()%>% select(rowname,env.par)
-
-#plot
-counts_env_par_corr_all %>%
-  cor_reorder() %>%
-  pull_lower_triangle() %>%
-  cor_plot(significant.level = 0.1,label = TRUE)
-```
-
-Correlation between and cell abundances
-```{r counts-counts-corr}
-#merge counts and env.par data
-data_4_corr.c <- counts_all%>% 
-  filter(Depth %in% c("SRF"))%>%
-  group_by(Region, StationName, Domain)%>%
-  select(Region, StationName, Domain, FISH.conc.mn)  %>% 
-  spread(Domain, FISH.conc.mn)  #%>%
-
-#Correlation test
-set.seed(24)
-counts_counts_corr <- as.data.frame(data_4_corr.c) %>% 
-  select(-c(Region,StationName))%>% 
-  cor_mat(method = "pearson")
-#get correlation cooficients
-corr_rho.c<- counts_counts_corr  
-#check p-values
-corr_p.c <- counts_counts_corr %>% cor_get_pval()
-
-#plot
-counts_counts_corr %>%
-  cor_reorder() %>%
-  pull_lower_triangle() %>%
-  cor_plot(significant.level = 0.1,label = TRUE)
-
-#write.csv(corr_rho.c, "./corr_table_counts_to_counts.csv")
-#write.csv(corr_p.c, "./p_table_counts_to_counts.csv")
-```
-
-### Enigmatic microbial lineages increase in cell abundance towards the deep ocean
-
-## Depth profiles by taxa
-
-Select taxa and transform dataframes
-```{r vert-corr}
-taxa.depth <- c("SAR11", "BACT", "GAM", "ARCH", "CREN", "DELTA", "SAR324",   "SAR202", "SAR406","ALT","POL","ROS","CFX","OPI", "VER","EUB")
-
-#calculate mean conc., adjust the depth
-depth_FISH_by_regions <- counts_all%>% ungroup() %>% 
-  filter(Domain %in% taxa.depth)%>% 
-as.data.frame()
-
-depth_FISH_by_regions_wide<- depth_FISH_by_regions %>%
-  group_by(Region, StationName, Depth, Domain) %>% 
-  select(Region, StationName, Depth, Domain, FISH.conc.mn)  %>% 
-  spread(Domain, FISH.conc.mn)%>% 
-  as.data.frame()
-```
-
-Correlation between the env parameters
-```{r coENV-verr}
-set.seed(23)
-depth_corr <- depth_FISH_by_regions_wide %>% 
-  select(taxa.depth)%>% 
-   cor_mat(method = "pearson")
-#correlation cooficients
-depth_corr_rho <- depth_corr %>% select(rowname,taxa.depth)
-#p values
-depth_corr_p <- depth_corr %>% cor_get_pval()%>%  select(rowname,taxa.depth)
-
-#plot
-if(require("ggpubr")){
-  my.palette <- get_palette("PuOr", 200)
-  depth_corr %>%
-  cor_reorder() %>%
-  pull_lower_triangle() %>%
-  cor_plot(label = TRUE, palette = my.palette, method = "number")
-}
-#write.csv(depth_corr_rho, "./depth_corr_rho.csv")
-#write.csv(depth_corr_p, "./depth_corr_p.csv")
-```
-
-
-```{r vert-prof}
-set.seed(24)
-counts_all %>% 
-  group_by(Domain) %>% 
-  kruskal_test(FISH.conc.mn~Depth)
-
-set.seed(25)
-Region_FISH_prop_Wilcox <- counts_all   %>%
-  group_by(Domain)%>%
-  rstatix::wilcox_test(FISH.conc.mn~Depth) %>%
-  adjust_pvalue(method = "BH")%>%
-  add_significance()
-Region_FISH_prop_Wilcox
-```
- 
 ## Save image
 ```{r save2}
 #save.image("Data_analysis.RData")
